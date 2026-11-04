@@ -40,6 +40,7 @@ import type { GuideEnd } from './guide.ts';
 import { coreText } from './i18n/index.ts';
 import { modelLanguage, type ModelLanguage } from './language.ts';
 import { panelText } from './webui/strings.ts';
+import { calendarText } from './webui/calendar-strings.ts';
 
 export const NOTICE_ID = 'coopanion';
 
@@ -403,13 +404,16 @@ export class NoticeWorld implements World {
   webUi(language: Language = 'zh'): WorldWebUiDecl {
     return {
       label: coreText(language).noticeLabel,
-      panels: [{ id: 'alarms', title: panelText(language).title, getMethods: ['list'] }],
+      panels: [
+        { id: 'calendar', title: calendarText(language).title, getMethods: ['list'] },
+        { id: 'alarms', title: panelText(language).title, getMethods: ['list'] },
+      ],
       invoke: async (panel, method, args) => this.invoke(panel, method, args),
     };
   }
 
   private invoke(panel: string, method: string, args: unknown[]): AlarmsState {
-    if (panel !== 'alarms') throw new Error(`no panel ${panel}`);
+    if (panel !== 'alarms' && panel !== 'calendar') throw new Error(`no panel ${panel}`);
     if (method === 'cancel') {
       const alarm = this.alarms.cancel(args[0]);
       if (!alarm) throw new Error(`no alarm ${JSON.stringify(args[0])}`);

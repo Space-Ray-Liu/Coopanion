@@ -8,6 +8,7 @@ import type { Alarm } from '../alarms.ts';
 import type { AlarmsState } from '../notice.ts';
 import { panelText } from './strings.ts';
 import './style.css';
+import { calendarPanel } from './calendar.ts';
 
 /** `MM-DD HH:MM` in `timezone`, as Coo reads its alarms (`localLabel` in alarms.ts). */
 function clock(timezone: string): { format(ms: number): string } {
@@ -131,5 +132,5 @@ const alarmsPanel: WebUiPanel = {
   },
 };
 
-const bundle: WebUiClientBundle = { panels: { alarms: alarmsPanel } };
+const bundle: WebUiClientBundle = { panels: { calendar: calendarPanel, alarms: alarmsPanel } };
 export default bundle;

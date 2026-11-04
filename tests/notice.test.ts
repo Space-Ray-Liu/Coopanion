@@ -68,7 +68,7 @@ describe('releaseLetter', () => {
 });
 
 describe('alarms panel', () => {
-  it('deletes an alarm from Coo\'s list and tells Coo which one', async () => {
+  it.each(['alarms', 'calendar'])('deletes from the %s panel and tells Coo which alarm', async (panelId) => {
     const dir = mkdtempSync(join(tmpdir(), 'coo-notice-'));
     const world = noticeDefinition({
       version: 'dev', notesDir: dir, stateFile: join(dir, 'notice.json'), alarmsFile: join(dir, 'alarms.json'),
@@ -82,13 +82,13 @@ describe('alarms panel', () => {
       await run('alarm_set', { note: '提醒喝水', in_minutes: 30 });
       await run('alarm_set', { note: '提醒睡觉', in_minutes: 90 });
       const panel = world.webUi!('zh');
-      const [first] = ((await panel.invoke!('alarms', 'list', [])) as AlarmsState).alarms;
-      const after = (await panel.invoke!('alarms', 'cancel', [first!.id])) as AlarmsState;
+      const [first] = ((await panel.invoke!(panelId, 'list', [])) as AlarmsState).alarms;
+      const after = (await panel.invoke!(panelId, 'cancel', [first!.id])) as AlarmsState;
       expect(after.alarms.map((a) => a.note)).toEqual(['提醒睡觉']);
       expect((await run('alarm_list', {})).text).not.toContain('提醒喝水');
       expect(pushed.map((e) => e.type)).toEqual(['coopanion.alarm-cancelled']);
       expect(pushed[0]!.render()).toContain('提醒喝水');
-      await expect(panel.invoke!('alarms', 'cancel', [first!.id])).rejects.toThrow();
+      await expect(panel.invoke!(panelId, 'cancel', [first!.id])).rejects.toThrow();
     } finally {
       await world.stop();
     }
