@@ -44,6 +44,7 @@ export default {
   'action.themeLight': 'Modo noturno: desligado · clique para ligar',
   'action.soundOn': 'Sons: ligados · clique para desligar',
   'action.soundOff': 'Sons: desligados · clique para ligar',
+  'action.calendar': 'Calendário',
   'action.dress': 'Guarda-roupa',
   'action.hide': 'Me esconda por enquanto (o ícone da bandeja me traz de volta)',
   'menu.cancel': 'Cancelar',

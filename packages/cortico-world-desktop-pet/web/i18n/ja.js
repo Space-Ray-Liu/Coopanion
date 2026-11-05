@@ -44,6 +44,7 @@ export default {
   'action.themeLight': 'ナイトモード：オフ · クリックでオン',
   'action.soundOn': 'サウンド：オン · クリックでオフ',
   'action.soundOff': 'サウンド：オフ · クリックでオン',
+  'action.calendar': 'カレンダー',
   'action.dress': '着せ替え',
   'action.hide': 'しばらく隠れる（トレイアイコンで呼び戻せます）',
   'menu.cancel': 'キャンセル',

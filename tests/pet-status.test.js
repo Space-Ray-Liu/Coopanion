@@ -27,7 +27,8 @@ function page({ host = false, hash = '' } = {}) {
   win.WebSocket = class {
     readyState = 1;
     constructor(url) { this.url = new URL(url); sockets.push(this); }
-    send() {}
+    sent = [];
+    send(message) { this.sent.push(JSON.parse(message)); }
   };
   win.deps = {
     applyTheme: (theme) => { win.document.documentElement.dataset.theme = theme; }, clamp, f, ICONS, linked: (text, n) => linked(text, n, win.document),
@@ -41,7 +42,7 @@ function page({ host = false, hash = '' } = {}) {
     lightWall() {}, dressFloor() {}, modeButton: () => ({ show() {} }), glowColor: () => null, setGlow() {}, bindAppearance() {}, announcePainted() {},
     createMic: () => ({ start() {}, stop() {} }),
   };
-  win.eval(`const { applyTheme, clamp, f, ICONS, linked, COO_CSS, mini, normalizeSkin, skinCss, createSfx, createSpeech, textSteps, loadBody, t, language, useLanguage, lightWall, dressFloor, modeButton, glowColor, setGlow, bindAppearance, announcePainted, createMic } = window.deps;\n${source}\nbody = window.deps.body; window.page = { onOrder, openInput, closeBubble, step: (dt) => { T += dt; stepDialog(dt); stepLines(); stepStatus(); layout(dt); }, interactive: () => bubble.matches(UI_SELECTOR), lines: () => lines, overUi: (el) => el.matches(UI_SELECTOR), REPLIED_FADE, UNANSWERED_FADE, MAX_LINES };`);
+  win.eval(`const { applyTheme, clamp, f, ICONS, linked, COO_CSS, mini, normalizeSkin, skinCss, createSfx, createSpeech, textSteps, loadBody, t, language, useLanguage, lightWall, dressFloor, modeButton, glowColor, setGlow, bindAppearance, announcePainted, createMic } = window.deps;\n${source}\nbody = window.deps.body; window.page = { onOrder, openMenu, openInput, closeBubble, step: (dt) => { T += dt; stepDialog(dt); stepLines(); stepStatus(); layout(dt); }, interactive: () => bubble.matches(UI_SELECTOR), lines: () => lines, overUi: (el) => el.matches(UI_SELECTOR), REPLIED_FADE, UNANSWERED_FADE, MAX_LINES };`);
   return { ...win.page, bubble: win.document.querySelector('#bubble'), bodyChanges, doc: win.document, sockets, win };
 }
 
@@ -245,5 +246,28 @@ describe("the person's lines above Coo", () => {
     expect(up(p)).toHaveLength(1);
     p.onOrder({ t: 'listen', phase: 'heard', text: '今天天气怎么样' });
     expect(up(p)).toHaveLength(0);
+  });
+});
+
+
+describe('calendar menu shortcut', () => {
+  it('shows the calendar icon when available and closes the menu after opening it', async () => {
+    const p = page({ host: true });
+    await expect.poll(() => p.sockets.length).toBe(1);
+    p.onOrder({ t: 'prefs', bot: { buttons: { calendar: true } } });
+    p.openMenu(300, 300);
+    const menu = p.doc.querySelector('#menu');
+    const button = menu.querySelector('[data-action="calendar"]');
+    expect(button.getAttribute('aria-label')).toBe(t('action.calendar'));
+    expect(button.querySelector('svg')).not.toBeNull();
+    button.click();
+    expect(menu.hidden).toBe(true);
+    expect(p.sockets[0].sent).toContainEqual({ t: 'control', action: 'calendar' });
+  });
+
+  it('omits the calendar when the embedding app does not provide it', () => {
+    const p = page();
+    p.openMenu(300, 300);
+    expect(p.doc.querySelector('[data-action="calendar"]')).toBeNull();
   });
 });

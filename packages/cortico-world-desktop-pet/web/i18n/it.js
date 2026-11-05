@@ -44,6 +44,7 @@ export default {
   'action.themeLight': 'Modalità notte: disattivata · clicca per attivarla',
   'action.soundOn': 'Suoni: attivi · clicca per disattivarli',
   'action.soundOff': 'Suoni: disattivati · clicca per attivarli',
+  'action.calendar': 'Calendario',
   'action.dress': 'Guardaroba',
   'action.hide': "Nascondimi per ora (l'icona nell'area di notifica mi riporta qui)",
   'menu.cancel': 'Annulla',

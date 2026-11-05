@@ -44,6 +44,7 @@ export default {
   'action.themeLight': 'Mode nuit : désactivé · cliquez pour activer',
   'action.soundOn': 'Sons : activés · cliquez pour désactiver',
   'action.soundOff': 'Sons : désactivés · cliquez pour activer',
+  'action.calendar': 'Calendrier',
   'action.dress': 'Habiller',
   'action.hide': "Me cacher pour l'instant (l'icône de la zone de notification me fait revenir)",
   'menu.cancel': 'Annuler',

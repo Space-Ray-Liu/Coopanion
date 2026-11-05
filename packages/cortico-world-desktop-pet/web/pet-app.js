@@ -1207,6 +1207,12 @@ const ACTIONS = {
       else window.open('/dress', '_blank');
     },
   },
+  calendar: {
+    icon: () => ICONS.calendar,
+    available: () => !!prefs.bot?.buttons?.calendar,
+    state: () => t('action.calendar'),
+    run: () => send({ t: 'control', action: 'calendar' }),
+  },
 };
 const available = (id) => ACTIONS[id] && (ACTIONS[id].available?.() ?? true);
 

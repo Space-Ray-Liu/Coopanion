@@ -44,6 +44,7 @@ export default {
   'action.themeLight': 'Modo nocturno: desactivado · clic para activar',
   'action.soundOn': 'Sonidos: activados · clic para desactivar',
   'action.soundOff': 'Sonidos: desactivados · clic para activar',
+  'action.calendar': 'Calendario',
   'action.dress': 'Vestuario',
   'action.hide': 'Escóndeme por ahora (el ícono de la bandeja me trae de vuelta)',
   'menu.cancel': 'Cancelar',

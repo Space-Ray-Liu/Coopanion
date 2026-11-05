@@ -47,6 +47,7 @@ export default {
   'action.themeLight': '夜间模式：已关闭 · 点击开启',
   'action.soundOn': '音效：已开启 · 点击关闭',
   'action.soundOff': '音效：已关闭 · 点击开启',
+  'action.calendar': '日历',
   'action.dress': '装扮',
   'action.hide': '隐藏桌宠（可从托盘图标重新显示）',
   'menu.cancel': '取消',

@@ -49,6 +49,7 @@ export default {
   'action.themeLight': 'Night mode: off · click to turn on',
   'action.soundOn': 'Sounds: on · click to turn off',
   'action.soundOff': 'Sounds: off · click to turn on',
+  'action.calendar': 'Calendar',
   'action.dress': 'Dress up',
   'action.hide': 'Hide the pet (show Coo again from the tray icon)',
   'menu.cancel': 'Cancel',

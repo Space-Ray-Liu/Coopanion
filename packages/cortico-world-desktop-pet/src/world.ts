@@ -122,6 +122,8 @@ export interface PetBotControls {
   openChat?(): void;
   /** Shows the embedding app's own dress page; the menu's 「装扮」 then opens it instead of the pet's dress window. */
   openDress?(): void;
+  /** Opens the embedding app’s calendar page. */
+  openCalendar?(): void;
   quit?(): void;
   /** The power button's label, e.g. "Quit Coopanion", read when the menu opens. */
   quitLabel?: string | (() => string);
@@ -937,7 +939,7 @@ export class DesktopPetWorld implements World {
       name: this.botName(),
       avatar,
       controls: !!c,
-      buttons: { pause, settings: !!c?.openSettings, dress: !!c?.openDress, quit: !!c?.quit, chat: !!c?.openChat },
+      buttons: { pause, settings: !!c?.openSettings, dress: !!c?.openDress, calendar: !!c?.openCalendar, quit: !!c?.quit, chat: !!c?.openChat },
       // the typing box warns, as the chat page does, that the model gets only the count of pasted images
       imagesSeen: this.host?.modelFacts.accepts('image/jpeg') ?? false,
       paused: pause && c?.isPaused ? c.isPaused() : null,
@@ -1174,6 +1176,7 @@ export class DesktopPetWorld implements World {
     if (action === 'pause' || action === 'resume') c.setPaused?.(action === 'pause');
     else if (action === 'settings') c.openSettings?.();
     else if (action === 'dress') c.openDress?.();
+    else if (action === 'calendar') c.openCalendar?.();
     else if (action === 'quit') c.quit?.();
     this.syncPrefs();
   }

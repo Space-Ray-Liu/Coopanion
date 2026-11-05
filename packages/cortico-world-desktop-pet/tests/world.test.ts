@@ -598,6 +598,7 @@ describe('with a pet page', () => {
       isPaused: () => paused,
       setPaused: (p) => { paused = p; calls.push(p ? 'pause' : 'resume'); },
       openSettings: () => calls.push('settings'),
+      openCalendar: () => calls.push('calendar'),
       quit: () => calls.push('quit'),
       quitLabel: '退出 App',
     };
@@ -614,13 +615,14 @@ describe('with a pet page', () => {
     cleanup.push(() => tab.close());
     const state = await (await fetch(`${origin(world)}/api/state`)).json() as { bot: Record<string, unknown> };
     expect(state.bot).toMatchObject({
-      name: 'Bot', controls: true, buttons: { pause: true, settings: true, dress: false, quit: true }, paused: false, quitLabel: '退出 App', avatar: expect.any(String),
+      name: 'Bot', controls: true, buttons: { pause: true, settings: true, dress: false, calendar: true, quit: true }, paused: false, quitLabel: '退出 App', avatar: expect.any(String),
     });
     win.send({ t: 'control', action: 'pause' });
     expect((await win.next((m) => m.t === 'prefs')).bot).toMatchObject({ paused: true });
     tab.send({ t: 'control', action: 'settings' });
+    tab.send({ t: 'control', action: 'calendar' });
     tab.send({ t: 'control', action: 'quit' });
-    await expect.poll(() => calls).toEqual(['pause', 'settings', 'quit']);
+    await expect.poll(() => calls).toEqual(['pause', 'settings', 'calendar', 'quit']);
   });
 
   it('the menu header shows only the controls the app lends', async () => {
@@ -629,7 +631,7 @@ describe('with a pet page', () => {
     const win = await windowPage(world);
     cleanup.push(() => win.close());
     const state = await (await fetch(`${origin(world)}/api/state`)).json() as { bot: Record<string, unknown> };
-    expect(state.bot).toMatchObject({ controls: true, buttons: { pause: false, settings: true, dress: false, quit: false }, paused: null, quitLabel: '', quitPrompt: '' });
+    expect(state.bot).toMatchObject({ controls: true, buttons: { pause: false, settings: true, dress: false, calendar: false, quit: false }, paused: null, quitLabel: '', quitPrompt: '' });
     // controls that were not lent are ignored
     win.send({ t: 'control', action: 'pause' });
     win.send({ t: 'control', action: 'quit' });

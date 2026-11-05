@@ -44,6 +44,7 @@ export default {
   'action.themeLight': 'Nachtmodus: aus · klicken zum Einschalten',
   'action.soundOn': 'Töne: an · klicken zum Ausschalten',
   'action.soundOff': 'Töne: aus · klicken zum Einschalten',
+  'action.calendar': 'Kalender',
   'action.dress': 'Outfit',
   'action.hide': 'Versteck mich erst mal (das Symbol im Infobereich holt mich zurück)',
   'menu.cancel': 'Abbrechen',
