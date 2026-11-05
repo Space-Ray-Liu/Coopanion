@@ -1,7 +1,7 @@
-/** Month view of pending alarms through the coopanion World's panel contract. */
+/** Month view of calendar entries and pending alarms through the coopanion World's panel contract. */
 import type { WebUiPanel } from 'cortico/web/shared/client-panel.ts';
-import type { AlarmsState } from '../notice.ts';
-import { alarmsOnDay, dateKey } from './calendar-days.ts';
+import type { CalendarState } from '../notice.ts';
+import { alarmsOnDay, dateKey, eventsOnDay } from './calendar-days.ts';
 import { calendarText } from './calendar-strings.ts';
 import { panelText } from './strings.ts';
 
@@ -17,7 +17,7 @@ export const calendarPanel: WebUiPanel = {
     const grid = ui.h('div', 'coo-calendar-grid');
     const detail = ui.h('div', 'coo-calendar-detail');
     const message = ui.msgline('');
-    let state: AlarmsState | null = null;
+    let state: CalendarState | null = null;
     let month = '';
     let selected = '';
     const move = (delta: number) => {
@@ -64,13 +64,36 @@ export const calendarPanel: WebUiPanel = {
         if (key === now) cell.setAttribute('aria-current', 'date');
         cell.setAttribute('aria-label', new Intl.DateTimeFormat(ctx.language, { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${key}T12:00:00Z`)));
         cell.append(ui.h('span', null, String(d)));
-        if (matches.length) cell.append(ui.h('span', 'coo-calendar-count', String(matches.length)));
+        const count = matches.length + eventsOnDay(st.events, key).length;
+        if (count) cell.append(ui.h('span', 'coo-calendar-count', String(count)));
         cell.addEventListener('click', () => { selected = key; paint(); });
         grid.append(cell);
       }
       detail.replaceChildren(ui.h('h3', null, selected), ui.h('div', 'coo-alarm-dim', st.timezone));
       const matches = alarmsOnDay(st.alarms, st.timezone, selected);
-      if (!matches.length) detail.append(ui.placeholder(t.empty));
+      const events = eventsOnDay(st.events, selected);
+      if (!matches.length && !events.length) detail.append(ui.placeholder(t.empty));
+      for (const event of events) {
+        const item = ui.h('div', 'coo-alarm');
+        const row = ui.rowbar();
+        const range = event.allDay ? t.allDay : `${event.start.replace('T', ' ')} – ${event.end.replace('T', ' ')}`;
+        row.append(ui.h('span', 'coo-alarm-time', range), ui.h('span', 'grow'));
+        const remove = ui.button(a.remove, { size: 'sm', onClick: async () => {
+          if (!await ui.confirm({ title: t.deleteEvent, body: `${event.title} (${event.start} – ${event.end})` })) return;
+          remove.disabled = true;
+          try {
+            state = await ctx.invoke<CalendarState>('delete', [event.id]);
+            paint();
+            ui.toast(a.removed);
+          } catch (error) {
+            remove.disabled = false;
+            ui.toast(a.failed(error instanceof Error ? error.message : String(error)), 'bad');
+          }
+        } });
+        row.append(remove);
+        item.append(row, ui.h('div', 'coo-alarm-note', event.title));
+        detail.append(item);
+      }
       const time = new Intl.DateTimeFormat(ctx.language, { timeZone: st.timezone, hour: '2-digit', minute: '2-digit' });
       for (const alarm of matches) {
         const item = ui.h('div', 'coo-alarm');
@@ -82,7 +105,7 @@ export const calendarPanel: WebUiPanel = {
           if (!await ui.confirm({ title: a.confirmTitle(selected), body: alarm.note })) return;
           remove.disabled = true;
           try {
-            state = await ctx.invoke<AlarmsState>('cancel', [alarm.id]);
+            state = await ctx.invoke<CalendarState>('cancel', [alarm.id]);
             paint();
             ui.toast(a.removed);
           } catch (error) {
@@ -97,7 +120,7 @@ export const calendarPanel: WebUiPanel = {
     };
     const refresh = async () => {
       try {
-        state = await ctx.invoke<AlarmsState>('list');
+        state = await ctx.invoke<CalendarState>('list');
         if (!selected) {
           selected = dateKey(state.timezone, Date.now());
           month = selected.slice(0, 7);

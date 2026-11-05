@@ -18,6 +18,7 @@
  * - When the introduction ends, walked through or closed, its record: Coo's lines and the
  *   person's answers (`guide.ts`), with what is Coo's to settle with the person after it.
  *
+ * - Calendar entries (`calendar.ts`): direct tools and the calendar panel, persisted in calendar.json.
  * - Wake-ups Coo sets for itself (`alarms.ts`): its tools, the event when one is due, and the `alarms`
  *   panel (`webui/client.ts`), which lists them and cancels one; a cancel there is told to Coo.
  *
@@ -29,23 +30,26 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { asRecord, field, readState, writeState } from './state-file.ts';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { ToolDef, World, WorldWebUiDecl, WorldHost } from 'cortico/core/types.ts';
 import type { Language } from 'cortico/core/language.ts';
 import { readTextFile } from 'cortico/core/util.ts';
 import { describeTools, type WorldDefinition, type WorldDescribe, type WorldSection } from 'cortico/world.ts';
 import { SELF_KEYS, selfAdjustMode } from 'cortico-world-desktop-pet';
 import { ALARM_TOOL_DECLS, Alarms, type Alarm } from './alarms.ts';
+import { CoopanionCalendar, type CalendarEntry } from './calendar.ts';
 import type { GuideEnd } from './guide.ts';
 import { coreText } from './i18n/index.ts';
 import { modelLanguage, type ModelLanguage } from './language.ts';
 import { panelText } from './webui/strings.ts';
+import { COOPANION_CALENDAR_TOOL_DECLS } from './model-text.ts';
 import { calendarText } from './webui/calendar-strings.ts';
 
 export const NOTICE_ID = 'coopanion';
 
 /** What the `alarms` panel's `list` and `cancel` return: the alarms set, soonest first, and the time zone their times are in. */
 export interface AlarmsState { timezone: string; alarms: Alarm[] }
+export interface CalendarState extends AlarmsState { events: CalendarEntry[] }
 /** How often the watched settings are compared with the last look. */
 const LOOK_EVERY_MS = 1000;
 /** Where the release notes stop being about the app: the download list that ends each file, by the file's language. */
@@ -388,8 +392,10 @@ export class NoticeWorld implements World {
   private update: { from: string | null; to: string } | null = null;
 
   private readonly alarms: Alarms;
+  private readonly calendar: CoopanionCalendar;
 
   constructor(private readonly a: NoticeAssembly, private readonly timezone: string) {
+    this.calendar = new CoopanionCalendar(join(dirname(a.alarmsFile), 'calendar.json'), timezone);
     this.alarms = new Alarms(a.alarmsFile, timezone, () => this.language);
   }
 
@@ -412,16 +418,19 @@ export class NoticeWorld implements World {
     };
   }
 
-  private invoke(panel: string, method: string, args: unknown[]): AlarmsState {
+  private invoke(panel: string, method: string, args: unknown[]): AlarmsState | CalendarState {
     if (panel !== 'alarms' && panel !== 'calendar') throw new Error(`no panel ${panel}`);
-    if (method === 'cancel') {
+    if (panel === 'calendar' && method === 'delete') {
+      this.calendar.delete(args[0]);
+    } else if (method === 'cancel') {
       const alarm = this.alarms.cancel(args[0]);
       if (!alarm) throw new Error(`no alarm ${JSON.stringify(args[0])}`);
       this.host?.pushDeferred({ type: 'coopanion.alarm-cancelled', origin: 'internal', render: () => this.alarms.cancelledText(alarm) }, { trigger: 'debounce' });
     } else if (method !== 'list') throw new Error(`no method ${method}`);
-    return { timezone: this.timezone, alarms: this.alarms.list() };
+    const state = { timezone: this.timezone, alarms: this.alarms.list() };
+    return panel === 'calendar' ? { ...state, events: this.calendar.list() } : state;
   }
-  tools(): ToolDef[] { return this.alarms.tools(); }
+  tools(): ToolDef[] { return [...this.alarms.tools(), ...this.calendar.tools()]; }
 
   async start(host: WorldHost): Promise<void> {
     this.host = host;
@@ -511,7 +520,10 @@ export class NoticeWorld implements World {
 }
 
 const DESCRIBE: WorldDescribe = {
-  tools: describeTools(ALARM_TOOL_DECLS, {
+  tools: describeTools([...ALARM_TOOL_DECLS, ...COOPANION_CALENDAR_TOOL_DECLS], {
+    coopanion_calendar_set: { zh: '添加或修改本地日历事项，无需电脑操作权限。', en: 'Creates or updates a local calendar entry without computer use.' },
+    coopanion_calendar_list: { zh: '查看本地日历事项。', en: 'Lists local calendar entries.' },
+    coopanion_calendar_delete: { zh: '删除本地日历事项。', en: 'Deletes a local calendar entry.' },
     alarm_set: { zh: '给自己定一个唤醒,到时带着备注叫醒自己;可每天重复。', en: 'Sets a wake-up for itself, due with its note; it can repeat daily.' },
     alarm_list: { zh: '列出已定的唤醒。', en: 'Lists the wake-ups it has set.' },
     alarm_cancel: { zh: '取消一个唤醒。', en: 'Cancels a wake-up.' },

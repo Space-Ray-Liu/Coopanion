@@ -15,3 +15,8 @@ export function alarmsOnDay(alarms: Alarm[], timezone: string, day: string): Ala
     return alarm.daily ? day >= first : day === first;
   });
 }
+
+/** Entries intersecting this local date; all-day end dates are inclusive. */
+export function eventsOnDay(events: import('../calendar.ts').CalendarEntry[], day: string) {
+  return events.filter((event) => event.start.slice(0, 10) <= day && event.end.slice(0, 10) >= day);
+}

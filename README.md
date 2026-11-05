@@ -49,7 +49,7 @@ Coopanion is a desktop pet. **Coo** lives on the bottom edge of your screen: it 
 - **Figures**: Coo, or the **DeepSeek Chan**, a fully animated whale girl with eight vendor color schemes and three outfits. Other figure packs are imported on the Dress up page (see the [figure pack compatibility promise](packages/cortico-world-desktop-pet/README.md#形象包兼容承诺)).
 - **Dress up**: Coo's colors (five of them after Cultist Simulator's principles: Lantern, Grail, Forge, Heart, Winter), hats, earrings, glasses and neckwear, its size and how often it walks.
 - **Alarms**: ask Coo to set one at a local time or after a number of minutes.
-- **Calendar**: click the calendar icon in Coo’s right-click menu to open the calendar directly. The Coopanion World page shows pending reminders by month. Select a day to view or delete reminders; daily alarms appear on each date from their next pending occurrence. Times use the deployment time zone. Ask Coo to add reminders. Completed reminders are not retained.
+- **Calendar**: click the calendar icon in Coo’s right-click menu to open it. Ask Coo to add, read, edit or delete all-day, timed or multi-day entries; computer-use permission is not required. Entries stay on this computer after their dates pass and across restarts. The month view also shows pending alarms. For a reminder, ask Coo to set an alarm as well. Times use the deployment time zone; external calendars are not synced.
 - **Extensions**: Worlds such as a QQ bot, a drawing room and small games, installed from World extensions → Extension market.
 - **OBS overlay**: Coo and its bubbles as an OBS Browser source on a transparent background.
 
