@@ -456,6 +456,7 @@ export async function main(): Promise<void> {
       setPaused: (paused) => bus?.setPaused(paused),
       openSettings: () => process.send?.({ type: 'companion:open', path: '' }),
       openChat: () => process.send?.({ type: 'companion:open', path: '#/chat' }),
+      openCalendar: () => process.send?.({ type: 'companion:open', path: '#/provider/world%3Acoopanion/calendar' }),
       openDress: () => process.send?.({ type: 'companion:open', path: '#/dress' }),
       openCuaSettings: () => process.send?.({ type: 'companion:open', path: '#/pet?cua=enable' }),
       quit: () => process.send?.({ type: 'companion:quit' }),
