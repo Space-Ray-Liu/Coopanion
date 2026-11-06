@@ -96,3 +96,5 @@ ChatGPT 套餐。表里的 `CHATGPT`(`vendors.ts`)给界面列出它,模型、�
 
 0.1.x 叫 `cortico-provider-deepseek`(`kind: "deepseek"`);Coopanion 启动时把旧端点的 `kind` 改成 `coo`。
 在 Coopanion 里它随应用注册;单独使用时按 Cortico 的扩展方式安装(`cortico.kind = provider`,`api = 5`)。
+
+`src/chatgpt/codex-quota.ts` 的 `CodexQuotaReader` 通过已安装的 Codex CLI 的 `account/read` 和 `account/rateLimits/read` 查询额度，仅在应用请求时启动子进程，15 秒超时后结束。它不读取凭据文件，不发起模型会话，返回来源账号、各额度窗口的已用／剩余百分比和重置时间；缺失数据、未登录和未安装命令行单独返回状态。

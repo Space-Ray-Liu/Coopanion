@@ -191,3 +191,5 @@ export {
 } from './vendors.ts';
 export { VENDOR_ICONS } from './icons.ts';
 export { CHATGPT_PROVIDER, SIGN_IN_PANEL, USAGE_LIMIT, chatgptModule, signedIn, usageLimited } from './chatgpt/index.ts';
+
+export { CodexQuotaReader } from './chatgpt/codex-quota.ts';
