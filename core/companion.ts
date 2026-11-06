@@ -62,7 +62,7 @@ import { withWorlds, type WorldDefinition, type WorldSection } from 'cortico/wor
 import { InstanceLockedError } from 'cortico/core/instance-lock.ts';
 import { CONSOLE } from 'cortico/worlds/console/definition.ts';
 import { desktopPetDefinition, figurePacks, type DesktopPetWorld, type PetDialogHandle } from 'cortico-world-desktop-pet';
-import COO, { CHATGPT, CHATGPT_PROVIDER, signedIn, usageLimited, vendorOf } from 'cortico-provider-coo';
+import COO, { CHATGPT, CHATGPT_PROVIDER, CodexQuotaReader, signedIn, usageLimited, vendorOf } from 'cortico-provider-coo';
 import { appWebUiAsset, bundledWebUiAssets } from './bundled-panels.ts';
 import { followPetLook } from './console-theme.ts';
 import { askForKey, guideDone, markDone, runGuide, type GuideDeps } from './guide.ts';
@@ -436,6 +436,7 @@ export async function main(): Promise<void> {
   let telemetry: Telemetry | null = null;
   let config: CoreConfig | null = null;
   let notice: NoticeWorld | null = null;
+  const codexQuota = new CodexQuotaReader();
   /** The introduction is running: the settings it makes are not told as changes. */
   let guiding = false;
   const guideRun = async (deps: GuideDeps) => {
@@ -464,7 +465,11 @@ export async function main(): Promise<void> {
         if (!model) throw new Error('No active model');
         const records = core.usageLog.readAll();
         if (core.usageLog.status().error) throw new Error('Usage ledger could not be read completely');
-        return petUsage(records, provider, model, config.timezone);
+        return { ...petUsage(records, provider, model, config.timezone), canQueryQuota: config.providers[provider]?.kind === CHATGPT_PROVIDER.id };
+      },
+      readQuota: () => {
+        if (config?.providers[config.activeProvider]?.kind !== CHATGPT_PROVIDER.id) return Promise.resolve({ state: 'unavailable' as const, account: null, windows: [], updatedAt: Date.now() });
+        return codexQuota.read();
       },
       openCalendar: () => process.send?.({ type: 'companion:open', path: '#/provider/world%3Acoopanion/calendar' }),
       openDress: () => process.send?.({ type: 'companion:open', path: '#/dress' }),
