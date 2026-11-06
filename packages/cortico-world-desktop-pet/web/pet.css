@@ -423,3 +423,8 @@ body.desk .floor{display:none}
 @media (prefers-reduced-motion: reduce){.wall-glow, .wall-lens, .bubble.said{transition:none}}
 @media (prefers-reduced-motion: reduce){.bubble.status.pop, .status .status-icon svg, .status .status-icon svg *, .bubble.pop, .b-opt, .b-own, .d-body > *, .d-card, .d-key, .d-key.taps, .d-bar.wait i, .d-card.on .d-cardic, .d-field.shake, .d-pill.chosen, .caret, .menu, .tools, .tool.holding::after, .tool.sent, .m-tile, .m-tile::before, .m-tile::after, .m-tile .ic, .m-tile .ic::before{animation:none}}
 @media (prefers-reduced-motion: reduce){.d-cards .d-card.on .d-cardic[class*="ic-persona_"], .d-cards .d-card.on .d-cardic .spout{animation:none}}
+
+.usage-model{padding:4px 6px; overflow-wrap:anywhere; font-size:12px; color:var(--muted)}
+.usage-total{padding:8px 6px 2px; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums}
+.usage-note{padding:3px 6px; font-size:11px; color:var(--muted); line-height:1.5; overflow-wrap:anywhere}
+.menu[role="dialog"]{box-sizing:border-box; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px); overflow:auto}

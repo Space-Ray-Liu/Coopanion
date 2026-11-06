@@ -625,6 +625,26 @@ describe('with a pet page', () => {
     await expect.poll(() => calls).toEqual(['pause', 'settings', 'calendar', 'quit']);
   });
 
+  it('returns current usage over the pet connection and handles read failures', async () => {
+    let model = 'model-a';
+    let failed = false;
+    const window = { input: 100, output: 20, requests: 1, unknown: 0 };
+    const { world } = await mounted(undefined, { controls: { readUsage: () => {
+      if (failed) throw new Error('private diagnostic');
+      return { provider: 'selected', model, timezone: 'UTC', updatedAt: 1000, fiveHours: window, week: window };
+    } } });
+    const win = await windowPage(world);
+    cleanup.push(() => win.close());
+    win.send({ t: 'control', action: 'usage' });
+    expect((await win.next((m) => m.t === 'usage')).usage).toMatchObject({ model: 'model-a', fiveHours: window });
+    model = 'model-b';
+    win.send({ t: 'control', action: 'usage' });
+    expect((await win.next((m) => m.t === 'usage')).usage).toMatchObject({ model: 'model-b' });
+    failed = true;
+    win.send({ t: 'control', action: 'usage' });
+    expect(await win.next((m) => m.t === 'usage')).toEqual({ t: 'usage', error: true });
+  });
+
   it('the menu header shows only the controls the app lends', async () => {
     const calls: string[] = [];
     const { world } = await mounted(undefined, { botName: () => 'Bot', controls: { openSettings: () => calls.push('settings') } });

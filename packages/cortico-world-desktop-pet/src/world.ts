@@ -107,6 +107,16 @@ const HOTKEY_POLL_MS = 30;
  */
 const MIC_RELEASE_MS = 500;
 
+export interface PetUsageWindow { input: number; output: number; requests: number; unknown: number }
+export interface PetUsageSummary {
+  provider: string;
+  model: string;
+  timezone: string;
+  updatedAt: number;
+  fiveHours: PetUsageWindow;
+  week: PetUsageWindow;
+}
+
 /**
  * Run controls an embedding app lends the pet's menu. Each button shows only when its control is
  * lent: pause/resume needs `isPaused` and `setPaused`, settings `openSettings`, the power button
@@ -124,6 +134,8 @@ export interface PetBotControls {
   openDress?(): void;
   /** Opens the embedding app’s calendar page. */
   openCalendar?(): void;
+  /** Local usage of the active provider and model, shown in a compact menu panel. */
+  readUsage?(): PetUsageSummary | Promise<PetUsageSummary>;
   quit?(): void;
   /** The power button's label, e.g. "Quit Coopanion", read when the menu opens. */
   quitLabel?: string | (() => string);
@@ -939,7 +951,7 @@ export class DesktopPetWorld implements World {
       name: this.botName(),
       avatar,
       controls: !!c,
-      buttons: { pause, settings: !!c?.openSettings, dress: !!c?.openDress, calendar: !!c?.openCalendar, quit: !!c?.quit, chat: !!c?.openChat },
+      buttons: { pause, settings: !!c?.openSettings, dress: !!c?.openDress, calendar: !!c?.openCalendar, usage: !!c?.readUsage, quit: !!c?.quit, chat: !!c?.openChat },
       // the typing box warns, as the chat page does, that the model gets only the count of pasted images
       imagesSeen: this.host?.modelFacts.accepts('image/jpeg') ?? false,
       paused: pause && c?.isPaused ? c.isPaused() : null,
@@ -1177,6 +1189,12 @@ export class DesktopPetWorld implements World {
     else if (action === 'settings') c.openSettings?.();
     else if (action === 'dress') c.openDress?.();
     else if (action === 'calendar') c.openCalendar?.();
+    else if (action === 'usage' && c.readUsage) {
+      void Promise.resolve().then(() => c.readUsage!()).then(
+        (usage) => this.server.broadcast({ t: 'usage', usage }),
+        () => this.server.broadcast({ t: 'usage', error: true }),
+      );
+    }
     else if (action === 'quit') c.quit?.();
     this.syncPrefs();
   }

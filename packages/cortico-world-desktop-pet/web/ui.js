@@ -52,6 +52,7 @@ export const ICONS = {
   play: icon('<path d="M8 5.5v13l10.5-6.5z"/>'),
   pause: icon('<path d="M9 5.5v13M15 5.5v13"/>'),
   settings: gear,
+  usage: icon('<path d="M4 20h16M7 16v-5M12 16V4M17 16V8"/>'),
   calendar: icon('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2M8 18h2"/>'),
   power: icon('<path d="M12 3.5v8M7.2 6.3a8 8 0 1 0 9.6 0"/>'),
   mic: icon('<rect x="8.5" y="3" width="7" height="11.5" rx="3.5"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'),

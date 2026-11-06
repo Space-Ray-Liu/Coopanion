@@ -539,6 +539,7 @@ macOS 的辅助功能查询每次最多等待 200ms,超时后仍报告前台程�
 回答同样只交给调用方。组件有按钮行(可带一个反复演示按法的按键帽)、可试选的卡片(可带图标或一张 `data:image/…` 图,比如服务的标志,名字下可带一行小字 `note`;选中时 Coo 当场演示对应动作:站着、溜达、跑来跑去)、
 文本框(可以是密钥框,带一个外链和一个「以后再说」)、进度条(调用方用 `update({ progress })` 推进,`close()` 收起)。
 `step` 在气泡顶上画步骤点,`closable` 画一个关闭钮;页面不在时结果是 `{ unavailable: true }`,页面回来后调用方重发即可。
+`controls.readUsage` 借出后，右键菜单显示用量图标，点击后在小面板显示当前连接和模型的最近 5 小时、本周输入及输出 token；数据由应用提供。
 `controls.openCalendar` 借出后，右键菜单显示日历图标，点击后打开应用提供的日历页。
 `controls.guide` 借出后,控制台的 `pet.guide` 面板方法会调它,应用借此重放引导。
 `/api/config` 写不了列表和对象,所以「习惯」页的两个自定义弹窗经 `pet` 面板方法保存:`setWakeKinds(种类数组)` 把 `touch.wakeOn` 设成 `custom` 并写 `touch.wakeKinds`,

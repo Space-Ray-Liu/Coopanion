@@ -271,3 +271,45 @@ describe('calendar menu shortcut', () => {
     expect(p.doc.querySelector('[data-action="calendar"]')).toBeNull();
   });
 });
+
+
+describe('usage popup', () => {
+  it('opens a compact panel, refreshes its model, and ignores replies after closing', async () => {
+    const p = page({ host: true });
+    await expect.poll(() => p.sockets.length).toBe(1);
+    p.onOrder({ t: 'prefs', bot: { buttons: { usage: true } } });
+    p.openMenu(300, 300);
+    p.doc.querySelector('[data-action="usage"]').click();
+    const menu = p.doc.querySelector('#menu');
+    expect(menu.hidden).toBe(false);
+    expect(menu.style.width).toBe('300px');
+    expect(menu.getAttribute('role')).toBe('dialog');
+    expect(p.sockets[0].sent.at(-1)).toEqual({ t: 'control', action: 'usage' });
+    const window = { input: 100, output: 20, requests: 1, unknown: 0 };
+    const usage = { provider: 'Selected', model: 'model-a', timezone: 'UTC', updatedAt: Date.now(), fiveHours: window, week: window };
+    p.onOrder({ t: 'usage', usage });
+    expect(menu.textContent).toContain('model-a');
+    expect(menu.querySelectorAll('.usage-total')).toHaveLength(2);
+    expect(menu.textContent).toContain('120 token');
+    p.onOrder({ t: 'prefs', bot: { name: 'Renamed', buttons: { usage: true } } });
+    expect(menu.getAttribute('role')).toBe('dialog');
+    expect(menu.querySelector('.m-head').textContent).toContain(t('action.usage'));
+    [...menu.querySelectorAll('button')].find((b) => b.textContent === t('usage.refresh')).click();
+    p.onOrder({ t: 'usage', usage: { ...usage, model: 'model-b', fiveHours: { ...window, unknown: 1 } } });
+    expect(menu.textContent).toContain('model-b');
+    expect(menu.textContent).toContain(t('usage.partial'));
+    [...menu.querySelectorAll('button')].find((b) => b.textContent === '×').click();
+    p.onOrder({ t: 'usage', usage });
+    expect(menu.hidden).toBe(true);
+  });
+
+  it('shows a read failure instead of zero usage', () => {
+    const p = page();
+    p.onOrder({ t: 'prefs', bot: { buttons: { usage: true } } });
+    p.openMenu(300, 300);
+    p.doc.querySelector('[data-action="usage"]').click();
+    p.onOrder({ t: 'usage', error: true });
+    expect(p.doc.querySelector('#menu').textContent).toContain(t('usage.failed'));
+    expect(p.doc.querySelector('.usage-total')).toBeNull();
+  });
+});

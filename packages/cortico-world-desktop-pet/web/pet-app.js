@@ -309,6 +309,7 @@ function onOrder(m) {
   switch (m.t) {
     case 'init': restorePosition(m.startX, m.startY); applyPrefs(m); if (!host) announcePainted(); break;
     case 'prefs': applyPrefs(m); break;
+    case 'usage': if (usageOpen && !menu.hidden) renderUsage(m.usage, !!m.error); break;
     case 'watching': watching = true; stopMic(); break;
     // the settings window's 「在桌面上隐藏」: the same as the menu's 「隐藏」
     case 'hide': host?.hide?.(); break;
@@ -1207,6 +1208,12 @@ const ACTIONS = {
       else window.open('/dress', '_blank');
     },
   },
+  usage: {
+    icon: () => ICONS.usage,
+    available: () => !!prefs.bot?.buttons?.usage,
+    state: () => t('action.usage'),
+    run: () => openUsage(),
+  },
   calendar: {
     icon: () => ICONS.calendar,
     available: () => !!prefs.bot?.buttons?.calendar,
@@ -1249,7 +1256,11 @@ function toggleVoice() {
 }
 
 /* ---------- menu: the bot and its run controls on top, the actions below; every entry is a round icon button ---------- */
+let usageOpen = false;
 function openMenu(x, y) {
+  usageOpen = false;
+  menu.setAttribute('role', 'menu');
+  menu.removeAttribute('aria-label');
   menu.innerHTML = '';
   menu.appendChild(Object.assign(document.createElement('div'), { className: 'm-head' }));
   renderMenuHead();
@@ -1289,6 +1300,7 @@ function openMenu(x, y) {
  * pause/resume, settings and the power button (which asks first). Without a bot the name is Coo's.
  */
 function renderMenuHead(confirmQuit = false) {
+  if (usageOpen) return;
   const head = menu.querySelector('.m-head'), bot = prefs.bot || {};
   if (!head) return;
   head.classList.toggle('confirm', confirmQuit);
@@ -1318,7 +1330,49 @@ function renderMenuHead(confirmQuit = false) {
   if (has.settings) act(ICONS.settings, t('menu.settings'), () => { closeMenu(); send({ t: 'control', action: 'settings' }); });
   if (has.quit) act(ICONS.power, bot.quitLabel, () => renderMenuHead(true), 'm-act power');
 }
-function closeMenu() { menu.hidden = true; }
+function closeMenu() { usageOpen = false; menu.hidden = true; }
+
+function openUsage() {
+  usageOpen = true;
+  menu.setAttribute('role', 'dialog');
+  menu.setAttribute('aria-label', t('action.usage'));
+  menu.hidden = false;
+  renderUsage(undefined, !ws || ws.readyState !== 1);
+  send({ t: 'control', action: 'usage' });
+}
+
+function renderUsage(usage, failed = false) {
+  menu.replaceChildren();
+  menu.style.width = '300px';
+  const head = document.createElement('div'); head.className = 'm-head';
+  const title = document.createElement('strong'); title.textContent = t('action.usage'); title.style.flex = '1';
+  const button = (label, run) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'm-act text';
+    b.textContent = label; b.title = label; b.setAttribute('aria-label', label); b.onclick = run;
+    return b;
+  };
+  const close = button('×', closeMenu);
+  close.title = t('bubble.close'); close.setAttribute('aria-label', close.title);
+  head.append(title, button(t('usage.refresh'), () => { renderUsage(); send({ t: 'control', action: 'usage' }); }), close);
+  menu.append(head);
+  const line = (text, cls = 'usage-note') => {
+    const el = document.createElement('div'); el.className = cls; el.textContent = text; menu.append(el);
+  };
+  if (!usage) { line(t(failed ? 'usage.failed' : 'usage.loading')); }
+  else {
+    line(`${usage.provider} · ${usage.model}`, 'usage-model');
+    for (const [key, period] of [['fiveHours', 'usage.fiveHours'], ['week', 'usage.week']]) {
+      const data = usage[key];
+      line(`${t(period)}: ${new Intl.NumberFormat(language()).format(data.input + data.output)} token`, 'usage-total');
+      line(`${t('usage.input')}: ${new Intl.NumberFormat(language()).format(data.input)} · ${t('usage.output')}: ${new Intl.NumberFormat(language()).format(data.output)}`);
+      if (data.unknown) line(t('usage.partial'));
+    }
+    line(t('usage.scope'));
+    line(`${new Intl.DateTimeFormat(language(), { hour: '2-digit', minute: '2-digit', timeZone: usage.timezone }).format(usage.updatedAt)} · ${usage.timezone}`);
+  }
+  menu.style.left = f(clamp(parseFloat(menu.style.left) || 8, 8, Math.max(8, innerWidth - menu.offsetWidth - 8))) + 'px';
+  menu.style.top = f(clamp(parseFloat(menu.style.top) || 8, 8, Math.max(8, innerHeight - menu.offsetHeight - 8))) + 'px';
+}
 
 /** Redraws whatever shows an action: the open menu's tiles and the hover buttons. */
 function refreshButtons() {
