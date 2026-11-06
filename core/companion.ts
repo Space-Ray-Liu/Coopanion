@@ -40,6 +40,7 @@
  * `{ type: 'companion:locked', pid, file }` when another process holds the data directory, and
  * `{ type: 'companion:ports-busy', from, to }` when every console port Cortico tried could not be listened on.
  */
+import { petUsage } from './pet-usage.ts';
 import { readdirSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -456,6 +457,15 @@ export async function main(): Promise<void> {
       setPaused: (paused) => bus?.setPaused(paused),
       openSettings: () => process.send?.({ type: 'companion:open', path: '' }),
       openChat: () => process.send?.({ type: 'companion:open', path: '#/chat' }),
+      readUsage: () => {
+        if (!core || !config) throw new Error('Core is not ready');
+        const provider = config.activeProvider;
+        const model = config.providers[provider]?.spec?.model;
+        if (!model) throw new Error('No active model');
+        const records = core.usageLog.readAll();
+        if (core.usageLog.status().error) throw new Error('Usage ledger could not be read completely');
+        return petUsage(records, provider, model, config.timezone);
+      },
       openCalendar: () => process.send?.({ type: 'companion:open', path: '#/provider/world%3Acoopanion/calendar' }),
       openDress: () => process.send?.({ type: 'companion:open', path: '#/dress' }),
       openCuaSettings: () => process.send?.({ type: 'companion:open', path: '#/pet?cua=enable' }),
