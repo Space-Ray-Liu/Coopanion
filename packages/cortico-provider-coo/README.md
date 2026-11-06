@@ -98,3 +98,5 @@ ChatGPT 套餐。表里的 `CHATGPT`(`vendors.ts`)给界面列出它,模型、�
 在 Coopanion 里它随应用注册;单独使用时按 Cortico 的扩展方式安装(`cortico.kind = provider`,`api = 5`)。
 
 `src/chatgpt/codex-quota.ts` 的 `CodexQuotaReader` 通过已安装的 Codex CLI 的 `account/read` 和 `account/rateLimits/read` 查询额度，仅在应用请求时启动子进程，15 秒超时后结束。它不读取凭据文件，不发起模型会话，返回来源账号、各额度窗口的已用／剩余百分比和重置时间；缺失数据、未登录和未安装命令行单独返回状态。
+
+Windows 额度查询通过 `src/chatgpt/codex-command.ts` 在 PATH 中查找原生 `codex.exe`，或从 npm 安装的 Codex 包定位平台可执行文件，直接以隐藏窗口方式启动；不经过 `codex.cmd`。支持 x64、ARM64 及新旧平台包目录。

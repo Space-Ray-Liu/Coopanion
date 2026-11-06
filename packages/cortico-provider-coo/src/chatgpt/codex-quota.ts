@@ -1,5 +1,6 @@
 /** Read-only Codex app-server adapter. Uses Codex's own login without reading credential files. */
 import { spawn } from 'node:child_process';
+import { windowsCodexCommand, type CodexCommand } from './codex-command.ts';
 
 export interface CodexQuotaWindow {
   bucket: string;
@@ -39,18 +40,19 @@ export function quotaWindows(value: unknown): CodexQuotaWindow[] {
 /** A command override is used by local protocol tests; the application uses the installed Codex CLI. */
 export class CodexQuotaReader {
   private pending: Promise<CodexQuota> | null = null;
-  constructor(private readonly command: readonly [string, ...string[]] = process.platform === 'win32'
-    ? ['cmd.exe', '/d', '/s', '/c', 'codex app-server'] : ['codex', 'app-server'], private readonly timeoutMs = 15_000) {}
+  constructor(private readonly command?: CodexCommand, private readonly timeoutMs = 15_000) {}
 
   read(): Promise<CodexQuota> {
     if (this.pending) return this.pending;
-    this.pending = this.query().finally(() => { this.pending = null; });
+    const command = this.command ?? (process.platform === 'win32' ? windowsCodexCommand() : ['codex', 'app-server'] as const);
+    if (!command) return Promise.resolve({ state: 'missing-cli', account: null, windows: [], updatedAt: Date.now() });
+    this.pending = this.query(command).finally(() => { this.pending = null; });
     return this.pending;
   }
 
-  private query(): Promise<CodexQuota> {
+  private query(command: CodexCommand): Promise<CodexQuota> {
     return new Promise((resolve) => {
-      const child = spawn(this.command[0], this.command.slice(1), { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, detached: process.platform !== 'win32' });
+      const child = spawn(command[0], command.slice(1), { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, detached: process.platform !== 'win32' });
       let ended = false, next = 0, buffer = '', bytes = 0;
       const waiting = new Map<number, { resolve: (value: unknown) => void; reject: () => void }>();
       const finish = (state: CodexQuota['state'], account: string | null = null, windows: CodexQuotaWindow[] = []) => {
@@ -79,7 +81,7 @@ export class CodexQuotaReader {
         send({ id, method, ...(params ? { params } : {}) });
       });
       child.on('error', (error) => finish((error as NodeJS.ErrnoException).code === 'ENOENT' ? 'missing-cli' : 'unavailable'));
-      child.on('exit', (code) => finish(process.platform === 'win32' && code === 9009 && next === 1 ? 'missing-cli' : 'unavailable'));
+      child.on('exit', () => finish('unavailable'));
       child.stdin.on('error', () => finish('unavailable'));
       // Diagnostics may contain account or credential details; they are drained without retention.
       child.stderr.resume();
