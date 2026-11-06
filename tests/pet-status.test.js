@@ -313,3 +313,40 @@ describe('usage popup', () => {
     expect(p.doc.querySelector('.usage-total')).toBeNull();
   });
 });
+
+
+describe('account quota popup', () => {
+  it('shows the source account, real percentages and progress, then clears them on failure', async () => {
+    const p = page({ host: true });
+    await expect.poll(() => p.sockets.length).toBe(1);
+    p.onOrder({ t: 'prefs', bot: { buttons: { usage: true, quota: true } } });
+    p.openMenu(300, 300);
+    p.doc.querySelector('[data-action="usage"]').click();
+    const window = { input: 100, output: 20, requests: 1, unknown: 0 };
+    const usage = { provider: 'Selected', model: 'model-a', timezone: 'UTC', updatedAt: Date.now(), fiveHours: window, week: window, canQueryQuota: true };
+    p.onOrder({ t: 'usage', usage });
+    p.doc.querySelector('.quota-query').click();
+    expect(p.sockets[0].sent.at(-1)).toEqual({ t: 'control', action: 'quota' });
+    p.onOrder({ t: 'quota', quota: { state: 'ready', account: 'account@example.test', updatedAt: Date.now(), windows: [
+      { bucket: 'main', minutes: 300, usedPercent: 25, remainingPercent: 75, resetsAt: 2000000000000 },
+      { bucket: 'main', minutes: 10080, usedPercent: 100, remainingPercent: 0, resetsAt: null },
+    ] } });
+    const menu = p.doc.querySelector('#menu');
+    expect(menu.style.width).toBe('300px');
+    expect(menu.textContent).toContain('account@example.test');
+    expect(menu.textContent).toContain('25%');
+    expect(menu.textContent).toContain('75%');
+    expect([...menu.querySelectorAll('progress')].map((bar) => bar.value)).toEqual([25, 100]);
+    expect(menu.textContent).toContain(t('quota.noReset'));
+    // A token response arriving late cannot replace the account view.
+    p.onOrder({ t: 'usage', usage });
+    expect(menu.querySelectorAll('progress')).toHaveLength(2);
+    menu.querySelector('.quota-query').click();
+    p.onOrder({ t: 'quota', quota: { state: 'sign-in', account: null, windows: [], updatedAt: Date.now() } });
+    expect(menu.textContent).toContain(t('quota.sign-in'));
+    expect(menu.querySelector('progress')).toBeNull();
+    [...menu.querySelectorAll('button')].find((b) => b.textContent === '×').click();
+    p.onOrder({ t: 'quota', error: true });
+    expect(menu.hidden).toBe(true);
+  });
+});

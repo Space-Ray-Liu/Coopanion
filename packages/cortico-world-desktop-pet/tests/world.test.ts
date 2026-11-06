@@ -645,6 +645,24 @@ describe('with a pet page', () => {
     expect(await win.next((m) => m.t === 'usage')).toEqual({ t: 'usage', error: true });
   });
 
+  it('returns account quota only on request and hides diagnostic errors', async () => {
+    let failed = false;
+    const quota = { state: 'ready' as const, account: 'account@example.test', updatedAt: 1000, windows: [
+      { bucket: 'main', minutes: 300, usedPercent: 25, remainingPercent: 75, resetsAt: null },
+    ] };
+    const { world } = await mounted(undefined, { controls: { readQuota: async () => {
+      if (failed) throw new Error('private diagnostic');
+      return quota;
+    } } });
+    const win = await windowPage(world);
+    cleanup.push(() => win.close());
+    win.send({ t: 'control', action: 'quota' });
+    expect((await win.next((m) => m.t === 'quota')).quota).toEqual(quota);
+    failed = true;
+    win.send({ t: 'control', action: 'quota' });
+    expect(await win.next((m) => m.t === 'quota')).toEqual({ t: 'quota', error: true });
+  });
+
   it('the menu header shows only the controls the app lends', async () => {
     const calls: string[] = [];
     const { world } = await mounted(undefined, { botName: () => 'Bot', controls: { openSettings: () => calls.push('settings') } });

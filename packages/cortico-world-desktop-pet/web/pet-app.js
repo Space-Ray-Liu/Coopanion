@@ -309,7 +309,8 @@ function onOrder(m) {
   switch (m.t) {
     case 'init': restorePosition(m.startX, m.startY); applyPrefs(m); if (!host) announcePainted(); break;
     case 'prefs': applyPrefs(m); break;
-    case 'usage': if (usageOpen && !menu.hidden) renderUsage(m.usage, !!m.error); break;
+    case 'quota': if (quotaOpen && !menu.hidden) renderQuota(m.quota); break;
+    case 'usage': if (usageOpen && !quotaOpen && !menu.hidden) renderUsage(m.usage, !!m.error); break;
     case 'watching': watching = true; stopMic(); break;
     // the settings window's 「在桌面上隐藏」: the same as the menu's 「隐藏」
     case 'hide': host?.hide?.(); break;
@@ -1257,8 +1258,10 @@ function toggleVoice() {
 
 /* ---------- menu: the bot and its run controls on top, the actions below; every entry is a round icon button ---------- */
 let usageOpen = false;
+let quotaOpen = false;
 function openMenu(x, y) {
   usageOpen = false;
+  quotaOpen = false;
   menu.setAttribute('role', 'menu');
   menu.removeAttribute('aria-label');
   menu.innerHTML = '';
@@ -1330,10 +1333,11 @@ function renderMenuHead(confirmQuit = false) {
   if (has.settings) act(ICONS.settings, t('menu.settings'), () => { closeMenu(); send({ t: 'control', action: 'settings' }); });
   if (has.quit) act(ICONS.power, bot.quitLabel, () => renderMenuHead(true), 'm-act power');
 }
-function closeMenu() { usageOpen = false; menu.hidden = true; }
+function closeMenu() { usageOpen = false; quotaOpen = false; menu.hidden = true; }
 
 function openUsage() {
   usageOpen = true;
+  quotaOpen = false;
   menu.setAttribute('role', 'dialog');
   menu.setAttribute('aria-label', t('action.usage'));
   menu.hidden = false;
@@ -1367,10 +1371,57 @@ function renderUsage(usage, failed = false) {
       line(`${t('usage.input')}: ${new Intl.NumberFormat(language()).format(data.input)} · ${t('usage.output')}: ${new Intl.NumberFormat(language()).format(data.output)}`);
       if (data.unknown) line(t('usage.partial'));
     }
+    if (usage.canQueryQuota && prefs.bot?.buttons?.quota) {
+      const quota = document.createElement('button'); quota.type = 'button'; quota.className = 'quota-query';
+      quota.textContent = t('quota.query'); quota.addEventListener('click', () => {
+        quotaOpen = true;
+        renderQuota(undefined, !!ws && ws.readyState === 1);
+        send({ t: 'control', action: 'quota' });
+      });
+      menu.append(quota);
+    }
     line(t('usage.scope'));
     line(`${new Intl.DateTimeFormat(language(), { hour: '2-digit', minute: '2-digit', timeZone: usage.timezone }).format(usage.updatedAt)} · ${usage.timezone}`);
   }
   menu.style.left = f(clamp(parseFloat(menu.style.left) || 8, 8, Math.max(8, innerWidth - menu.offsetWidth - 8))) + 'px';
+  menu.style.top = f(clamp(parseFloat(menu.style.top) || 8, 8, Math.max(8, innerHeight - menu.offsetHeight - 8))) + 'px';
+}
+
+/** Codex account quota is separate from the selected model's local token ledger. */
+function renderQuota(quota, loading = false) {
+  menu.replaceChildren();
+  const header = document.createElement('div'); header.className = 'm-head';
+  const title = document.createElement('strong'); title.textContent = t('quota.title'); title.style.flex = '1';
+  const back = document.createElement('button'); back.type = 'button'; back.className = 'm-act text';
+  back.textContent = '‹'; back.setAttribute('aria-label', t('quota.back')); back.onclick = openUsage;
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'm-act';
+  close.textContent = '×'; close.setAttribute('aria-label', t('bubble.close')); close.onclick = closeMenu;
+  header.append(back, title, close); menu.append(header);
+  const line = (text, cls = 'usage-note') => {
+    const el = document.createElement('div'); el.className = cls; el.textContent = text; menu.append(el);
+  };
+  if (loading) line(t('usage.loading'));
+  else if (!quota || quota.state !== 'ready') line(t(`quota.${quota?.state ?? 'unavailable'}`));
+  else {
+    line(`Codex · ${quota.account || t('quota.unknownAccount')}`, 'usage-model');
+    const number = new Intl.NumberFormat(language(), { maximumFractionDigits: 1 });
+    for (const window of quota.windows) {
+      const period = window.minutes === 300 ? t('quota.fiveHours') : window.minutes === 10080 ? t('quota.week') : t('quota.window', { minutes: window.minutes });
+      line(`${window.bucket} · ${period}`, 'usage-model');
+      line(`${t('quota.used')} ${number.format(window.usedPercent)}% · ${t('quota.remaining')} ${number.format(window.remainingPercent)}%`, 'usage-total');
+      const bar = document.createElement('progress'); bar.max = 100; bar.value = Math.min(100, window.usedPercent);
+      bar.className = 'quota-progress'; bar.setAttribute('aria-label', `${window.bucket} · ${period} · ${t('quota.used')}`);
+      menu.append(bar);
+      line(window.resetsAt === null ? t('quota.noReset') : `${t('quota.reset')} ${new Intl.DateTimeFormat(language(), { dateStyle: 'short', timeStyle: 'short' }).format(window.resetsAt)}`);
+    }
+    line(t('quota.source'));
+    line(new Intl.DateTimeFormat(language(), { timeStyle: 'short' }).format(quota.updatedAt));
+  }
+  if (!loading) {
+    const refresh = document.createElement('button'); refresh.type = 'button'; refresh.className = 'quota-query';
+    refresh.textContent = t('usage.refresh'); refresh.onclick = () => { renderQuota(undefined, !!ws && ws.readyState === 1); send({ t: 'control', action: 'quota' }); };
+    menu.append(refresh);
+  }
   menu.style.top = f(clamp(parseFloat(menu.style.top) || 8, 8, Math.max(8, innerHeight - menu.offsetHeight - 8))) + 'px';
 }
 
