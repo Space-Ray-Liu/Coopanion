@@ -195,11 +195,12 @@ const within = (v: unknown, min: number, max: number, fallback: number) => (type
 function readVocab(raw: unknown, skipped: string[], t: PackText): VocabWord[] | string {
   if (!Array.isArray(raw)) return t.vocabNotArray;
   const out: VocabWord[] = [];
-  const taken = new Set<string>();
+  const taken = new Map<string, string>();
   for (const w of raw as Array<Record<string, unknown>>) {
     const id = w?.id;
     if (typeof id !== 'string' || !ID.test(id)) return t.badWordId(JSON.stringify(id));
     if (!WORD_KINDS.has(w.kind as string)) { skipped.push(t.unknownKind(id, JSON.stringify(w.kind))); continue; }
+    if (taken.has(id)) return t.nameTaken(id);
     const names: Record<string, string[]> = {};
     for (const [lang, list] of Object.entries((w.names ?? {}) as Record<string, unknown>)) {
       if (!Array.isArray(list)) return t.namesNotArray(id, lang);
@@ -210,8 +211,8 @@ function readVocab(raw: unknown, skipped: string[], t: PackText): VocabWord[] | 
       names[lang] = list as string[];
     }
     for (const n of [id, ...Object.values(names).flat()]) {
-      if (taken.has(n)) return t.nameTaken(n);
-      taken.add(n);
+      if (taken.has(n) && taken.get(n) !== id) return t.nameTaken(n);
+      taken.set(n, id);
     }
     const about = namesOf(w.about);
     if (!about) return t.noWordAbout(id);
@@ -360,6 +361,7 @@ export interface PackScan { packs: FigurePack[]; problems: PackProblem[] }
 export const BUILTIN_PACKS: ReadonlyArray<{ dir: string; base: string }> = [
   { dir: fileURLToPath(new URL('../web/coo/', import.meta.url)), base: '/web/coo/' },
   { dir: fileURLToPath(new URL('../web/whale/', import.meta.url)), base: '/web/whale/' },
+  { dir: fileURLToPath(new URL('../web/holoface/', import.meta.url)), base: '/web/holoface/' },
 ];
 
 /** The built-in packs and those installed under `roots` (each subdirectory one pack); problems are worded in `language`. */

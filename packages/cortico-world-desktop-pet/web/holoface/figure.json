@@ -1,0 +1,693 @@
+{
+  "manifest": 2,
+  "api": 2,
+  "id": "holoface",
+  "version": "1.0.0",
+  "name": {
+    "zh": "薄荷全息脸",
+    "zh-Hant": "薄荷全息臉",
+    "en": "Mint Hologram",
+    "ja": "ミントホログラム",
+    "ko": "민트 홀로그램",
+    "fr": "Hologramme menthe",
+    "de": "Mint-Hologramm",
+    "es-419": "Holograma menta",
+    "pt-BR": "Holograma menta",
+    "it": "Ologramma menta",
+    "ru": "Мятная голограмма"
+  },
+  "about": {
+    "zh": "一张薄荷绿色全息电子脸，保留扫描线、像素高光、圆角切边和悬浮手势。表情连续形变，眼睛、嘴和手势都不会瞬间换图。任务真实失败时用大哭；任务确认成功或用户夸奖时用举手致敬；由你根据上下文判断，不把每次工具执行结束都当成任务成功。",
+    "en": "A mint-green holographic face with scanlines, pixel highlights, chamfered corners and floating hands. Expressions morph continuously. When a task actually fails, use cry. When a task is confirmed successful or the person explicitly praises you, use salute. Judge these meanings from context; an individual tool finishing does not by itself mean the task succeeded."
+  },
+  "author": "Coopanion custom",
+  "license": "AGPL-3.0-or-later",
+  "entry": "figure.js",
+  "export": "createHoloBody",
+  "thumb": "thumb.svg",
+  "effects": {
+    "reach": 0.18
+  },
+  "vocab": [
+    {
+      "id": "neutral",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "正常"
+        ],
+        "zh-Hant": [
+          "正常"
+        ],
+        "en": [
+          "Neutral"
+        ],
+        "ja": [
+          "通常"
+        ],
+        "ko": [
+          "기본"
+        ],
+        "fr": [
+          "Neutre"
+        ],
+        "de": [
+          "Neutral"
+        ],
+        "es-419": [
+          "Normal"
+        ],
+        "pt-BR": [
+          "Normal"
+        ],
+        "it": [
+          "Neutro"
+        ],
+        "ru": [
+          "Обычное"
+        ]
+      },
+      "about": {
+        "zh": "轻轻浮动、眨眼，眼睛跟随指针。",
+        "en": "A mint holographic face floats gently, blinks and follows the pointer."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "smug",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "墨镜得意"
+        ],
+        "zh-Hant": [
+          "墨鏡得意"
+        ],
+        "en": [
+          "Cool"
+        ],
+        "ja": [
+          "得意"
+        ],
+        "ko": [
+          "자신만만"
+        ],
+        "fr": [
+          "Assuré"
+        ],
+        "de": [
+          "Lässig"
+        ],
+        "es-419": [
+          "Confiado"
+        ],
+        "pt-BR": [
+          "Confiante"
+        ],
+        "it": [
+          "Sicuro"
+        ],
+        "ru": [
+          "Самодовольство"
+        ]
+      },
+      "about": {
+        "zh": "墨镜滑落到眼前，反光缓慢扫过。",
+        "en": "Sunglasses settle over the eyes with a moving holographic sheen; use for playful confidence."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "victory",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "双手比耶"
+        ],
+        "zh-Hant": [
+          "雙手比耶"
+        ],
+        "en": [
+          "Victory"
+        ],
+        "ja": [
+          "ピース"
+        ],
+        "ko": [
+          "브이"
+        ],
+        "fr": [
+          "Victoire"
+        ],
+        "de": [
+          "Siegeszeichen"
+        ],
+        "es-419": [
+          "Victoria"
+        ],
+        "pt-BR": [
+          "Vitória"
+        ],
+        "it": [
+          "Vittoria"
+        ],
+        "ru": [
+          "Победа"
+        ]
+      },
+      "about": {
+        "zh": "双手比耶并轻轻摆动。",
+        "en": "Both hands make swaying peace signs; use for excitement and celebration."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "salute",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "举手致敬"
+        ],
+        "zh-Hant": [
+          "舉手致敬"
+        ],
+        "en": [
+          "Salute"
+        ],
+        "ja": [
+          "敬礼"
+        ],
+        "ko": [
+          "경례"
+        ],
+        "fr": [
+          "Salut"
+        ],
+        "de": [
+          "Salutieren"
+        ],
+        "es-419": [
+          "Saludo"
+        ],
+        "pt-BR": [
+          "Saudação"
+        ],
+        "it": [
+          "Saluto"
+        ],
+        "ru": [
+          "Приветствие"
+        ]
+      },
+      "about": {
+        "zh": "手抬至额前致敬，星光闪烁。确认任务成功完成或用户夸奖时优先用这个表情。",
+        "en": "A hand rises to the forehead in salute with a sparkle. Prefer this after a confirmed successful task or explicit praise from the person."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "love",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "爱心"
+        ],
+        "zh-Hant": [
+          "愛心"
+        ],
+        "en": [
+          "Love"
+        ],
+        "ja": [
+          "愛情"
+        ],
+        "ko": [
+          "사랑"
+        ],
+        "fr": [
+          "Amour"
+        ],
+        "de": [
+          "Liebe"
+        ],
+        "es-419": [
+          "Cariño"
+        ],
+        "pt-BR": [
+          "Amor"
+        ],
+        "it": [
+          "Amore"
+        ],
+        "ru": [
+          "Любовь"
+        ]
+      },
+      "about": {
+        "zh": "脸颊带笑，爱心跳动、漂浮。",
+        "en": "A warm smile with floating, beating coral hearts; use for affection."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "thumbsup",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "点赞"
+        ],
+        "zh-Hant": [
+          "按讚"
+        ],
+        "en": [
+          "Thumbsup"
+        ],
+        "ja": [
+          "いいね"
+        ],
+        "ko": [
+          "좋아요"
+        ],
+        "fr": [
+          "Poucelevé"
+        ],
+        "de": [
+          "Daumenhoch"
+        ],
+        "es-419": [
+          "Megusta"
+        ],
+        "pt-BR": [
+          "Curtida"
+        ],
+        "it": [
+          "Pollicealzato"
+        ],
+        "ru": [
+          "Одобрение"
+        ]
+      },
+      "about": {
+        "zh": "眯眼微笑，右手竖起拇指。",
+        "en": "Smiling eyes and a gently bobbing thumbs-up; use for agreement or encouragement."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "thinking",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "思考"
+        ],
+        "zh-Hant": [
+          "思考"
+        ],
+        "en": [
+          "Thinking"
+        ],
+        "ja": [
+          "考え中"
+        ],
+        "ko": [
+          "생각"
+        ],
+        "fr": [
+          "Réflexion"
+        ],
+        "de": [
+          "Nachdenken"
+        ],
+        "es-419": [
+          "Pensando"
+        ],
+        "pt-BR": [
+          "Pensando"
+        ],
+        "it": [
+          "Pensiero"
+        ],
+        "ru": [
+          "Размышление"
+        ]
+      },
+      "about": {
+        "zh": "眼神向上游移，手托下巴。",
+        "en": "The eyes look upward while a hand rests under the chin; use while considering a problem."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "happy",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "大笑"
+        ],
+        "zh-Hant": [
+          "大笑"
+        ],
+        "en": [
+          "Laughing"
+        ],
+        "ja": [
+          "大笑い"
+        ],
+        "ko": [
+          "웃음"
+        ],
+        "fr": [
+          "Rire"
+        ],
+        "de": [
+          "Lachen"
+        ],
+        "es-419": [
+          "Risa"
+        ],
+        "pt-BR": [
+          "Risada"
+        ],
+        "it": [
+          "Risata"
+        ],
+        "ru": [
+          "Смех"
+        ]
+      },
+      "about": {
+        "zh": "双眼弯起，嘴角展开，双手随笑声抖动。",
+        "en": "Eyes squeeze into a laugh, the mouth opens, and the fists bounce gently."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "angry",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "生气"
+        ],
+        "zh-Hant": [
+          "生氣"
+        ],
+        "en": [
+          "Angry"
+        ],
+        "ja": [
+          "怒り"
+        ],
+        "ko": [
+          "화남"
+        ],
+        "fr": [
+          "Colère"
+        ],
+        "de": [
+          "Wütend"
+        ],
+        "es-419": [
+          "Enojo"
+        ],
+        "pt-BR": [
+          "Raiva"
+        ],
+        "it": [
+          "Rabbia"
+        ],
+        "ru": [
+          "Злость"
+        ]
+      },
+      "about": {
+        "zh": "眉眼压低、轻微颤动，表达不满。",
+        "en": "Angled eyes and a subtle angry tremble; use for frustration, not a routine task failure."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "cry",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "大哭"
+        ],
+        "zh-Hant": [
+          "大哭"
+        ],
+        "en": [
+          "Crying"
+        ],
+        "ja": [
+          "大泣き"
+        ],
+        "ko": [
+          "울음"
+        ],
+        "fr": [
+          "Pleurs"
+        ],
+        "de": [
+          "Weinen"
+        ],
+        "es-419": [
+          "Llanto"
+        ],
+        "pt-BR": [
+          "Choro"
+        ],
+        "it": [
+          "Pianto"
+        ],
+        "ru": [
+          "Плач"
+        ]
+      },
+      "about": {
+        "zh": "眼睛渐渐闭起，嘴张开，眼泪持续流下。确认任务失败时优先用这个表情。",
+        "en": "The eyelids lower, the mouth opens and tears flow. Prefer this for a confirmed task failure; distinguish a task failing from an intermediate tool retry."
+      },
+      "seconds": 5
+    },
+    {
+      "id": "surprised",
+      "kind": "expression",
+      "names": {
+        "zh": [
+          "惊讶"
+        ],
+        "zh-Hant": [
+          "驚訝"
+        ],
+        "en": [
+          "Surprised"
+        ],
+        "ja": [
+          "驚き"
+        ],
+        "ko": [
+          "놀람"
+        ],
+        "fr": [
+          "Surprise"
+        ],
+        "de": [
+          "Überrascht"
+        ],
+        "es-419": [
+          "Sorpresa"
+        ],
+        "pt-BR": [
+          "Surpresa"
+        ],
+        "it": [
+          "Sorpresa"
+        ],
+        "ru": [
+          "Удивление"
+        ]
+      },
+      "about": {
+        "zh": "眼睛拉长，嘴张成小方口，轻轻颤动。",
+        "en": "The eyes widen into pixel columns, with a small open mouth and a startled pulse."
+      },
+      "seconds": 4.5
+    },
+    {
+      "id": "walk",
+      "kind": "motion",
+      "names": {
+        "zh": [
+          "走动"
+        ],
+        "zh-Hant": [
+          "走動"
+        ],
+        "en": [
+          "Walk"
+        ],
+        "ja": [
+          "歩く"
+        ],
+        "ko": [
+          "걷기"
+        ],
+        "fr": [
+          "Marcher"
+        ],
+        "de": [
+          "Gehen"
+        ],
+        "es-419": [
+          "Caminar"
+        ],
+        "pt-BR": [
+          "Andar"
+        ],
+        "it": [
+          "Camminare"
+        ],
+        "ru": [
+          "Ходить"
+        ]
+      },
+      "about": {
+        "zh": "全息脸随身体动作轻轻变形。",
+        "en": "The hologram follows the body movement."
+      },
+      "seconds": 1
+    },
+    {
+      "id": "run",
+      "kind": "motion",
+      "names": {
+        "zh": [
+          "奔跑"
+        ],
+        "zh-Hant": [
+          "奔跑"
+        ],
+        "en": [
+          "Run"
+        ],
+        "ja": [
+          "走る"
+        ],
+        "ko": [
+          "달리기"
+        ],
+        "fr": [
+          "Courir"
+        ],
+        "de": [
+          "Laufen"
+        ],
+        "es-419": [
+          "Correr"
+        ],
+        "pt-BR": [
+          "Correr"
+        ],
+        "it": [
+          "Correre"
+        ],
+        "ru": [
+          "Бежать"
+        ]
+      },
+      "about": {
+        "zh": "全息脸随身体动作轻轻变形。",
+        "en": "The hologram follows the body movement."
+      },
+      "seconds": 1
+    },
+    {
+      "id": "jump",
+      "kind": "motion",
+      "names": {
+        "zh": [
+          "跳跃"
+        ],
+        "zh-Hant": [
+          "跳躍"
+        ],
+        "en": [
+          "Jump"
+        ],
+        "ja": [
+          "ジャンプ"
+        ],
+        "ko": [
+          "점프"
+        ],
+        "fr": [
+          "Sauter"
+        ],
+        "de": [
+          "Springen"
+        ],
+        "es-419": [
+          "Saltar"
+        ],
+        "pt-BR": [
+          "Pular"
+        ],
+        "it": [
+          "Saltare"
+        ],
+        "ru": [
+          "Прыгать"
+        ]
+      },
+      "about": {
+        "zh": "全息脸随身体动作轻轻变形。",
+        "en": "The hologram follows the body movement."
+      },
+      "seconds": 1
+    },
+    {
+      "id": "wave",
+      "kind": "motion",
+      "names": {
+        "zh": [
+          "挥手"
+        ],
+        "zh-Hant": [
+          "揮手"
+        ],
+        "en": [
+          "Wave"
+        ],
+        "ja": [
+          "手を振る"
+        ],
+        "ko": [
+          "손흔들기"
+        ],
+        "fr": [
+          "Fairecoucou"
+        ],
+        "de": [
+          "Winken"
+        ],
+        "es-419": [
+          "Saludar"
+        ],
+        "pt-BR": [
+          "Acenar"
+        ],
+        "it": [
+          "Salutare"
+        ],
+        "ru": [
+          "Махать"
+        ]
+      },
+      "about": {
+        "zh": "全息脸随身体动作轻轻变形。",
+        "en": "The hologram follows the body movement."
+      },
+      "seconds": 1
+    }
+  ]
+}

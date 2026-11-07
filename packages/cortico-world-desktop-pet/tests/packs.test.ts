@@ -15,10 +15,10 @@ const word = { id: 'beep', kind: 'motion', names: { zh: ['哔'] }, about: { zh: 
 const base = { manifest: 2, api: 2, id: 'robot', name: { zh: '机器人' }, about: { zh: '一个机器人' }, entry: 'figure.js', export: 'createBody', axes: [], presets: [], vocab: [word] };
 
 describe('figure packs', () => {
-  it('reads the built-in Coo and whale', () => {
+  it('reads every built-in figure', () => {
     const { packs, problems } = figurePacks([]);
     expect(problems).toEqual([]);
-    expect(packs.map((p) => p.id)).toEqual(['coo', 'whale']);
+    expect(packs.map((p) => p.id)).toEqual(['coo', 'whale', 'holoface']);
   });
 
   it('refuses a pack whose files lie outside it', () => {
@@ -52,7 +52,13 @@ describe('figure packs', () => {
     const builtin = BUILTIN_PACKS.map((b) => (b.base === '/web/whale/' ? { ...b, dir: join(root, 'not-shipped') } : b));
     const { packs, problems } = scanPacks(builtin, [root]);
     expect(problems).toEqual([]);
-    expect(packs.map((p) => [p.id, p.builtin, p.base])).toEqual([['coo', true, '/web/coo/'], ['whale', false, '/packs/whale/']]);
+    expect(packs.find((p) => p.id === 'whale')).toMatchObject({ builtin: false, base: '/packs/whale/' });
+  });
+
+  it('accepts the same alias translated identically for one word, while rejecting ambiguity between words', () => {
+    const translated = { ...word, names: { zh: ['提示'], 'zh-Hant': ['提示'], en: ['beep'] } };
+    expect(typeof readManifest(pack({ ...base, vocab: [translated] }))).toBe('object');
+    expect(readManifest(pack({ ...base, vocab: [translated, { ...word, id: 'boop', names: { en: ['beep'] } }] }))).toMatch(/不止一个词/);
   });
 
   it('refuses a word name a script could never write: a marker\'s separator in it, longer than an inline marker, or naming two words', () => {

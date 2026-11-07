@@ -10,7 +10,7 @@
 [Cortico](https://github.com/Pal-AI-Lab/Cortico) 的桌宠 World,一个独立的扩展包。
 [Coopanion](https://github.com/Pal-AI-Lab/Coopanion) 桌面上的 Coo 就是它。
 
-bot 在屏幕底边有一个小身体,由一个形象包提供(见下文):内置的 Coo(C 形的身体,两只 0 形的眼睛,两条短腿)、内置的大肥鱼,或者装上的其他包。它用气泡说话、用选项提问、
+bot 在屏幕底边有一个小身体,由一个形象包提供(见下文):内置的 Coo(C 形的身体,两只 0 形的眼睛,两条短腿)、内置的大肥鱼和薄荷全息脸,或者装上的其他包。它用气泡说话、用选项提问、
 沿屏幕底边走动、做表情和动作;人可以对它说话(FunASR 或 Whisper 在本机识别,Windows 上也可用系统自带的识别)、打字、点选项、戳它、摸它、
 把它拎起来甩出去,这些都作为事件送回 bot。开了电脑操作时,bot 还能看屏幕、动鼠标键盘(见「电脑操作」)。
 
@@ -53,7 +53,7 @@ World 在 `127.0.0.1:7797`(被占向上顺延)起一个页面服务:`/pet` 是�
 浏览器的写请求和 WebSocket 只接受本服务的 HTTP 源(含端口);不带 Origin 的本机客户端可以连接。
 宿主启动地址的 fragment 带随机凭据,桌宠窗口和 OBS 画面来源连接时必须提供;公开地址和状态不含凭据。
 桌宠窗口连接被替换后会重新连接。窗口在线时,浏览器预览只接收外观和偏好更新,仍可发送文字、修改偏好和使用运行控制。
-桌宠内置两个形象,和导入的形象包(见「形象包」)一起在装扮页最上面一行选,存在配置 `skin.figure` 里:`coo` 是 Coo,`whale` 是 DeepSeek 大肥鱼
+桌宠内置三个形象,和导入的形象包(见「形象包」)一起在装扮页最上面一行选,存在配置 `skin.figure` 里:`coo` 是 Coo,`whale` 是 DeepSeek 大肥鱼
 (鲸鱼女仆,`web/whale`,用 `web/rig` 画的 Live2D 式分件模型,八套配色存在 `skin.scheme`,见 [examples/whale](examples/whale/README.md))。
 选大肥鱼时装扮页的配色和配件换成大肥鱼的八套配色;桌宠页第一次用到大肥鱼时才加载这套贴图,只加载选中的那套。
 桌宠窗口是一个 Electron 进程(`host/electron-main.cjs`):透明、无边框、置顶,盖住一块显示器的工作区
@@ -241,7 +241,7 @@ Windows 上桌宠窗口从前台窗口拿走键盘，打字框关掉后还回去
 
 ## 形象包
 
-桌宠的身体都来自形象包,Coo 也是一个。形象包是一个目录,根上有 `figure.json`;内置的 Coo 在 `web/coo/`、大肥鱼在 `web/whale/`,
+桌宠的身体都来自形象包,Coo 也是一个。形象包是一个目录,根上有 `figure.json`;内置的 Coo 在 `web/coo/`、大肥鱼在 `web/whale/`、薄荷全息脸在 `web/holoface/`,
 其余的从数据目录的 `figures/<目录>/` 和应用给的 `packRoots` 里找。`skin.figure` 是包的 id,`skin.scheme` 是它的打扮(Coo 的打扮存在 skin 自己的配色和配件字段里)。
 
 包里的代码只在沙箱里跑:桌宠页把它放进 `/figure-frame?pack=<id>`,这个页面的 CSP 把它设成不透明源,网络连接只许 `fetch` 这个包自己目录下的文件(见下文「读包里的文件」;内置包哪里都连不了),
@@ -281,6 +281,14 @@ Windows 上桌宠窗口从前台窗口拿走键盘，打字框关掉后还回去
 工厂按 `factory(base, { model, scheme, kit, loadImage, asset, host })` 调用,返回一个身体;契约写在 `web/figure-frame.js` 开头。
 用 kit 的包只要 `kit.createBody(host, { figure, words })`:`figure` 每帧画一次,`words` 是 kit 本身没有的词怎么做。
 `examples/whale/README.md` 是写形象包的完整说明。20 秒内没准备好、或者跑的时候抛错,桌宠换回 Coo,并告诉 bot 词表的变化。
+
+### 薄荷全息脸
+
+`web/holoface/figure.json` 定义形象与词表，`face.js` 用 SVG 绘制绿色全息脸，`figure.js` 将它接入身体 kit。十种表情是墨镜得意、双手比耶、举手致敬、爱心、点赞、思考、大笑、生气、大哭和惊讶，另有正常待机。
+
+眼睛和嘴使用一致方向、点数的轮廓；临界阻尼弹簧保留切换时的位置和速度，支持过渡途中改变表情。手势和配件也按连续权重过渡。kit 提供说话口型、视线、眨眼、触摸、移动和思考状态。任务失败时大哭、成功或受到夸奖时致敬的约定写在形象说明和词表中，由 bot 根据对话与工具回执判断。
+
+同一个词的跨语言名称可以相同；不同的词不能共用同一个名字。
 
 ### 读包里的文件
 
