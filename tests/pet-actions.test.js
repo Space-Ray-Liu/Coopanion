@@ -121,6 +121,25 @@ describe('the words the model can use', () => {
     run(pet, 1);
     expect(frames.at(-1).gesture).toBeNull();
   });
+
+  it('keeps mirroring and round landing dust for figures that use the kit defaults', () => {
+    const petG = { setAttribute() {}, innerHTML: '' }, shadowEl = { setAttribute() {} }, fxG = { innerHTML: '' };
+    const pet = createPet({ petG, shadowEl, fxG }, {
+      figure: cooFigure(), skin: defaultSkin(), roam: 'off', sfx: { play() {} },
+      bounds: () => ({ W: 1200, H: 400, floorY: 380, S: .42 }),
+    });
+    run(pet, 1); pet.act('turn'); run(pet, 1);
+    expect(pet.toStage(96, 126).x).toBeGreaterThan(pet.toStage(160, 126).x);
+    pet.act('jump');
+    let landed = false;
+    for (let i = 0; i < 180; i++) {
+      pet.step(1 / 60); pet.render();
+      if (pet.pet.mode === 'land') { landed = true; break; }
+    }
+    expect(landed).toBe(true);
+    expect(fxG.innerHTML).toContain('<circle class="p-dust"');
+    expect(fxG.innerHTML).not.toContain('data-holo-particle');
+  });
 });
 
 /** Runs `fn(made)` over a Web Audio that counts the tones and clips started (`made.rates`: the clips' playback rates). */

@@ -121,6 +121,12 @@ const HITS = [[128, 128, 108]];
  * drowsiness, how far the body sits, and `status`: the kind of work the page's status bubble shows (src/status.ts), or null.
  * `figure.groupTilt(mode, tilt, lean)`, if present, returns the rotation (degrees) the whole group gets
  * instead of tilt + lean; the frame carries tilt, lean and that rotation (groupRot) so the figure can bend the rest.
+ * `figure.mirror: false` keeps a front-facing drawing and gaze when travel changes direction.
+ * `figure.groupScale(mode, sx, sy)` may return the group's scale factors for squash, stretch and breathing.
+ * `figure.particles.grab` and `.land` may describe a burst: `at` ([x,y]), `radius` ([rx,ry]), `count`,
+ * `speed` and `life` ([min,max] seconds). Positions, radii and speed are in logo units.
+ * `figure.particles.draw(p, { scale, progress })` may return stage-space SVG for a particle, or null for the
+ * kit's drawing. `p` has type, x, y, vx, vy, age and life; bursts also carry a stable random `seed` in [0,1).
  * `figure.colors.z`, if present, colours the sleep z's (otherwise they take the `eye` class).
  * `figure.gestures`, if present, names the short gestures (nod, shake) the figure draws itself: the body then
  * leaves them out, and the frame's `gesture` ({ kind, k: 0..1 }, or null) says which one is playing and how far.
@@ -156,6 +162,9 @@ export function createPet(els, opts) {
   /** Whether the last frame found the horizontal speed not finite: a run of such frames is logged once. */
   let velXBad = false;
   const P = [];
+  const visualDirection = () => custom?.mirror === false ? 1 : pet.facing;
+  const visualFacing = () => custom?.mirror === false ? 1 : pet.faceVis;
+  const turning = () => custom?.mirror !== false && Math.abs(pet.faceVis - pet.facing) > .05;
   const anchors = () => ({ ...ANCHORS, ...custom?.anchors });
   let A = anchors();
   const minX = () => 104 * S + 8, maxX = () => W - 104 * S - 8;
@@ -363,6 +372,18 @@ export function createPet(els, opts) {
       emit('dust', toStage(lx, 250), { vx: rnd(-spread, spread) - pet.facing * rnd(10, 40), vy: rnd(-30, -8), life: rnd(.4, .65) });
     }
   }
+  function burst(kind) {
+    const effect = custom?.particles?.[kind];
+    if (!effect) return false;
+    for (let i = 0; i < effect.count; i++) {
+      const angle = rnd(0, Math.PI * 2), dx = Math.cos(angle), dy = Math.sin(angle);
+      const speed = rnd(effect.speed * .4, effect.speed) * S;
+      emit('dust', toStage(effect.at[0] + dx * effect.radius[0], effect.at[1] + dy * effect.radius[1]), {
+        vx: dx * speed, vy: dy * speed, life: rnd(...effect.life), seed: Math.random(),
+      });
+    }
+    return true;
+  }
 
   function step(dt) {
     // a frame that took no time has nothing to advance, and the horizontal speed below divides by its length
@@ -385,13 +406,13 @@ export function createPet(els, opts) {
         return pet.glance;
       }
       const k = Math.min(1, pm / 120);
-      return [pdx * pet.facing / pm * 5 * k, pdy / pm * 4 * k];
+      return [pdx * visualDirection() / pm * 5 * k, pdy / pm * 4 * k];
     };
 
     switch (m) {
       case 'idle': {
         lookT = track();
-        if (pointer.inside && !press && pdx * pet.facing < -50 && pm < 600) {
+        if (custom?.mirror !== false && pointer.inside && !press && pdx * pet.facing < -50 && pm < 600) {
           pet.turnAcc += dt;
           if (pet.turnAcc > .9) { pet.facing *= -1; pet.turnAcc = 0; }
         } else pet.turnAcc = 0;
@@ -654,7 +675,7 @@ export function createPet(els, opts) {
     pet.fy = pet.gy; pet.vy = 0; pet.vx = 0; pet.gvy = 0;
     pet.sqv += clamp(impact * .0024, .8, 4.5);
     play('land', 'move', kind !== 'jump' && impact > 1000);
-    dustAt(128, impact > 900 ? 7 : 3, 70);
+    if (!burst('land')) dustAt(128, impact > 900 ? 7 : 3, 70);
     if (kind === 'throw' && impact > 1000) { setMode('dizzy'); onEvent('touch', { kind: 'crash' }); return; }
     setMode('land');
     if (kind === 'throw') { pet.expr = 'surprised'; pet.exprUntil = T + .9; pet.nextAt = T + 2; }
@@ -666,14 +687,15 @@ export function createPet(els, opts) {
     const fc = pet._fc || FACES.neutral.f(0), fname = pet._fname || 'neutral';
     const drag = pet.mode === 'drag';
     const br = Math.sin(T * (pet.mode === 'sleep' ? 1.7 : 2.4));
-    const sx = (1 + pet.sq * .7) * (1 - .05 * pet.stretch) * (1 - .009 * br);
-    const sy = (1 - pet.sq) * (1 + .09 * pet.stretch) * (1 + .016 * br);
+    let sx = (1 + pet.sq * .7) * (1 - .05 * pet.stretch) * (1 - .009 * br);
+    let sy = (1 - pet.sq) * (1 + .09 * pet.stretch) * (1 + .016 * br);
+    if (custom?.groupScale) [sx, sy] = custom.groupScale(pet.mode, sx, sy);
     const ax = 128, ay = drag ? 36 : 256;
     let AX = drag ? pet.dx : pet.x, AY = drag ? pet.dy : pet.fy;
     if (fc.shake) AX += Math.sin(T * 60) * 1.4;
     else if (pet.pulse?.kind === 'shiver') AX += Math.sin(T * 75) * 1.1 * envelope((T - pet.pulse.t0) / pet.pulse.dur, .08, .85);
     // a figure may keep tilt and lean off the whole group and bend its own parts instead
-    const kx = S * pet.faceVis * sx, ky = S * sy, lean = pet.lean * pet.faceVis;
+    const facing = visualFacing(), kx = S * facing * sx, ky = S * sy, lean = pet.lean * facing;
     const rot = custom?.groupTilt ? custom.groupTilt(pet.mode, pet.tilt, lean) : pet.tilt + lean;
     pet.xf = { AX, AY, ax, ay, kx, ky, rot };
     petG.setAttribute('transform', `translate(${f(AX)} ${f(AY)}) rotate(${f(rot)}) scale(${kx.toFixed(4)} ${ky.toFixed(4)}) translate(${-ax} ${-ay})`);
@@ -688,7 +710,7 @@ export function createPet(els, opts) {
     const gesture = pet.pulse ? { kind: pet.pulse.kind, k: clamp((T - pet.pulse.t0) / pet.pulse.dur, 0, 1) } : null;
     custom.draw(petG, face, {
       look: pet.look, legs, low: pet.low, t: T, blink, eyeClose, acc: skin, swing: pet.swing,
-      face: fname, mode: pet.mode, modeT: pet.modeT, talk: pet.talkK, status: pet.status, drowse: pet.drowse, sit: pet.sitK, facing: pet.faceVis, tilt: pet.tilt, lean, groupRot: rot, gesture,
+      face: fname, mode: pet.mode, modeT: pet.modeT, talk: pet.talkK, status: pet.status, drowse: pet.drowse, sit: pet.sitK, facing, tilt: pet.tilt, lean, groupRot: rot, gesture,
     });
 
     const footY = drag ? pet.dy + 220 * S * 1.09 : pet.fy;
@@ -705,7 +727,10 @@ export function createPet(els, opts) {
     const zPaint = custom?.colors?.z ? `stroke="${custom.colors.z}"` : 'class="eye"';
     for (const p of P) {
       const a = p.age / p.life;
-      if (p.type === 'z') {
+      const drawing = custom?.particles?.draw?.(p, { scale: S, progress: a });
+      if (drawing != null) {
+        s += drawing;
+      } else if (p.type === 'z') {
         const op = a < .15 ? a / .15 : 1 - (a - .15) / .85, z = (.7 + .9 * a) * sc;
         s += `<path ${zPaint} fill="none" stroke-width="${f(3 / z)}" stroke-linecap="round" stroke-linejoin="round" opacity="${f(op)}" transform="translate(${f(p.x + Math.sin(p.age * 2.5) * 6)} ${f(p.y)}) scale(${f(z)})" d="M-6 -7H6L-6 7H6"/>`;
       } else if (p.type === 'heart') {
@@ -734,6 +759,7 @@ export function createPet(els, opts) {
   /** Picks the body up by the scruff; it then follows the pointer until let go of. */
   function grab() {
     const scruff = toStage(128, 36);
+    burst('grab');
     pet.expr = null;
     setMode('drag', { dx: scruff.x, dy: scruff.y });
     play('grab', 'touch');
@@ -855,7 +881,7 @@ export function createPet(els, opts) {
     const side = toStage(128, 128 + pet.low);
     return {
       x: pet.x, ...(freeGround ? { y: pet.gy } : {}), facing: pet.facing, mode: pet.mode, busy: busy(), pressing: !!press, cursor: pet.cursor,
-      moving: !!press || MOVING_MODES.has(pet.mode) || !!pet.pulse || Math.abs(pet.faceVis - pet.facing) > .05,
+      moving: !!press || MOVING_MODES.has(pet.mode) || !!pet.pulse || turning(),
       box: { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) },
       hit: hits(), bubble: anchor(), side: { x: side.x, y: side.y, reach: 104 * S },
     };
@@ -869,7 +895,7 @@ export function createPet(els, opts) {
     get pressing() { return !!press; },
     /** Pressed, carried, airborne, walking, running, dancing, turning round, or in a short gesture (nod, wave, bow…): motion that frames far apart show as jumps. */
     get moving() {
-      return !!press || MOVING_MODES.has(pet.mode) || !!pet.pulse || Math.abs(pet.faceVis - pet.facing) > .05;
+      return !!press || MOVING_MODES.has(pet.mode) || !!pet.pulse || turning();
     },
     get time() { return T; },
     get bounds() { return { W, H, floorY, S, minX: minX(), maxX: maxX(), minY: minY() }; },
