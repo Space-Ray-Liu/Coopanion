@@ -2,7 +2,7 @@
   "manifest": 2,
   "api": 2,
   "id": "holoface",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "name": {
     "zh": "薄荷全息脸",
     "zh-Hant": "薄荷全息臉",

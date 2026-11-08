@@ -1,5 +1,6 @@
 /** Continuous geometry for a mint hologram. Retargeting preserves velocity, including mid-expression. */
 import { holoParticles } from './particles.js';
+import { HANDS } from './hands.js';
 const N = 32;
 const ellipse = (x, y, rx, ry, angle = 0) => Array.from({ length: N }, (_, i) => {
   const a = i * Math.PI * 2 / N, u = Math.cos(a) * rx, v = Math.sin(a) * ry;
@@ -18,7 +19,10 @@ function polygon(points) {
 const shift = (points, x, y) => points.map(([a, b]) => [a + x, b + y]);
 const up = (x, y) => shift(polygon([[-15, 5], [-4, -7], [4, -7], [15, 5], [10, 10], [0, 0], [-10, 10]]), x, y);
 const squeeze = (x, y, mirror) => shift(polygon([[-12 * mirror, -13], [5 * mirror, 0], [-12 * mirror, 13], [-17 * mirror, 8], [-6 * mirror, 0], [-17 * mirror, -8]]), x, y);
-const smile = (w = 24, depth = 12) => polygon([[128-w,169], [128,177], [128+w,169], [128+w-5,175+depth], [128,180+depth], [128-w+5,175+depth]]);
+const smile = (w = 24, depth = 12) => Array.from({length:N},(_,i)=>{
+  const angle=i*Math.PI*2/N, s=Math.sin(angle);
+  return [128+w*Math.cos(angle),169+(s>=0?(11+depth)*s:-8*s)];
+});
 function align(points) {
   let area=0;
   for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];area+=a[0]*b[1]-b[0]*a[1];}
@@ -39,12 +43,12 @@ export const EXPRESSIONS = ['neutral', 'smug', 'victory', 'salute', 'love', 'thu
 export const POSES = {
   neutral: pose(ellipse(96,126,12,15), ellipse(160,126,12,15), smile(20,0)),
   smug: pose(ellipse(96,126,13,8), ellipse(160,126,13,8), polygon([[112,172],[138,178],[148,171],[144,184],[124,184],[111,179]]), {cool:1}),
-  victory: pose(squeeze(96,126,1), squeeze(160,126,-1), smile(27,11), {peace:1}),
+  victory: pose(squeeze(96,126,1), squeeze(160,126,-1), smile(29,11), {peace:1}),
   salute: pose(ellipse(96,126,10,14), ellipse(160,126,10,14), smile(18,0), {salute:1}),
-  love: pose(squeeze(96,126,1), squeeze(160,126,-1), smile(28,10), {love:1}),
+  love: pose(squeeze(96,126,1), squeeze(160,126,-1), smile(31,12), {love:1}),
   thumbsup: pose(up(96,126), up(160,126), ellipse(128,174,10,9), {thumb:1}),
   thinking: pose(ellipse(96,121,14,16), ellipse(160,121,14,16), polygon([[115,171],[137,171],[139,177],[114,179]]), {think:1}),
-  happy: pose(squeeze(96,126,1), squeeze(160,126,-1), smile(31,16), {laugh:1}),
+  happy: pose(squeeze(96,126,1), squeeze(160,126,-1), smile(34,15), {laugh:1}),
   angry: pose(shift(polygon([[-15,-14],[15,-2],[12,16],[-5,13]]),96,126), shift(polygon([[15,-14],[-15,-2],[-12,16],[5,13]]),160,126), polygon([[116,180],[140,180],[140,188],[116,188]]), {anger:1}),
   cry: pose(up(96,121), up(160,121), polygon([[112,164],[144,164],[148,174],[148,206],[108,206],[108,174]]), {tears:1}),
   surprised: pose(ellipse(96,126,7,21), ellipse(160,126,7,21), polygon([[120,173],[136,173],[137,197],[119,197]]), {shock:1}),
@@ -103,23 +107,22 @@ export function createHoloFigure() {
       <g clip-path="url(#${id}-clip)"><path d="${head}" fill="url(#${id}-scan)"/><rect data-part="beam" x="42" y="40" width="174" height="10" fill="#b7ffe6" opacity=".12"/></g>
       <g data-part="face" fill="url(#${id}-pixels)" stroke="#bcffe8" stroke-width="1.2" stroke-linejoin="round" filter="url(#${id}-pixelglow)">
         <path data-part="left"/><path data-part="right"/><path data-part="mouth" fill="#4bd5ab"/>
+        <g clip-path="url(#${id}-mouthclip)" opacity=".8"><path data-part="teeth" d="M90 166Q128 173 166 166" fill="none" stroke="#d8fff2" stroke-width="4"/></g>
       </g>
-      <g clip-path="url(#${id}-mouthclip)" opacity=".8"><path data-part="teeth" d="M96 166Q128 173 160 166" fill="none" stroke="#d8fff2" stroke-width="4"/></g>
       <g data-part="cool"><path d="M72 106H122L119 139H70ZM134 106H184L186 139H137Z" fill="#258f74" stroke="#adffe3" stroke-width="4"/><path d="M121 115H137M80 111L74 132M91 111L84 133M143 111L139 131M155 111L148 133" fill="none" stroke="#bcffeb" stroke-width="4"/><g clip-path="url(#${id}-lenses)"><path data-part="shine" d="M70 98L50 146H62L82 98Z" fill="#dbfff3" opacity=".45"/></g></g>
       <g data-part="tears" fill="#a5ffe2" stroke="#d0ffed" stroke-width="1"><g data-part="tearflow"/></g>
       <g data-part="peace" fill="#81e8c8" stroke="#c0ffed" stroke-width="3.5" stroke-linejoin="round"><g data-part="peaceleft"/><g data-part="peaceright"/></g>
-      <g data-part="salute" fill="#82e8c6" stroke="#c7fff0" stroke-width="3" stroke-linejoin="round"><path d="M40 153L33 135L45 126L54 117L71 102Q79 96 82 102L64 123L76 119Q84 118 82 125L61 151L54 166Z"/><path d="M43 133L62 139M48 126L67 132M53 119L71 125" fill="none" stroke="#4abd99" stroke-width="2.4"/><path d="M41 161L53 151L64 163L51 179Z"/></g>
-      <g data-part="thumb" fill="#83e9c8" stroke="#c3ffeb" stroke-width="3"><path d="M184 146L192 131L192 113Q192 103 200 107L205 129H222Q231 129 229 139L222 164H193L184 159Z"/><path d="M184 143H193V168H184Z" fill="#52cba6"/><path d="M207 139H225M205 148H223M203 157H220" fill="none" stroke="#43b18e" stroke-width="2"/></g>
-      <g data-part="think" fill="#8deace" stroke="#c4ffed" stroke-width="3"><path d="M115 207L106 193L118 184L127 195L154 179Q162 175 165 181L144 201L131 216Z"/><path d="M113 204L105 212L115 226L129 216Z" fill="#57c8a9"/></g>
-      <g data-part="fists" fill="#8ae8c8" stroke="#c6ffec" stroke-width="3"><path d="M52 177H69Q76 177 76 184V198Q76 205 69 205H52Z"/><path d="M204 177H187Q180 177 180 184V198Q180 205 187 205H204Z"/><path d="M55 184H69M55 191H69M187 184H201M187 191H201" stroke="#3bb68f" stroke-width="2"/></g>
+      <g data-part="salute" fill="#82e8c6" stroke="#c7fff0" stroke-width="3" stroke-linejoin="round">${HANDS.salute}</g>
+      <g data-part="thumb" fill="#83e9c8" stroke="#c3ffeb" stroke-width="3" stroke-linejoin="round">${HANDS.thumb}</g>
+      <g data-part="think" fill="#8deace" stroke="#c4ffed" stroke-width="3" stroke-linejoin="round">${HANDS.think}</g>
+      <g data-part="fists" fill="#8ae8c8" stroke="#c6ffec" stroke-width="3" stroke-linejoin="round"><g data-part="fistleft" transform="translate(54 189)">${HANDS.fist}</g><g data-part="fistright" transform="translate(202 189) scale(-1 1)">${HANDS.fist}</g></g>
       <g data-part="hearts" fill="#ff977e" stroke="#ffd2b5" stroke-width="2"><path data-part="heartleft" d="${heart}"/><path data-part="heartright" d="${heart}"/></g>
       <path data-part="star" d="M59 76L63 90L77 94L63 99L59 113L54 99L40 94L54 90Z" fill="#d5fff0"/>
       <g data-part="anger" fill="#b8ffe3"><path d="M115 96V103M121 93V101M127 95V102" stroke="#b8ffe3" stroke-width="3"/></g>
     </g>`;
     const get = name => group.querySelector(`[data-part="${name}"]`);
     elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','fists','hearts','heartleft','heartright','star','anger','beam'].map(name=>[name,get(name)]));
-    const hand = '<path d="M-14 37L-28-28Q-30-37-23-39Q-16-41-14-31L-2 5L0-48Q0-58 8-58Q16-58 15-48L12 12L18 1Q23-7 29-3Q34 1 29 10L16 37V59H-12Z"/><path d="M-10 26H14M-10 36H14M-9 46H13" fill="none" stroke="#45b994" stroke-width="2.5"/>';
-    elements.peaceleft.innerHTML=hand; elements.peaceright.innerHTML=hand;
+    elements.peaceleft.innerHTML=HANDS.peace; elements.peaceright.innerHTML=HANDS.peace;
     for(const name of ['peace','salute','thumb','think','fists']){
       elements[name].setAttribute('fill',`url(#${id}-hands)`);
       elements[name].setAttribute('filter',`url(#${id}-pixelglow)`);
@@ -156,12 +159,12 @@ export function createHoloFigure() {
       ['cool','peace','salute','hearts','thumb','think','fists','anger','tears'].forEach((name,i)=>setWeight(name,w[i]));
       elements.shine.setAttribute('transform',`translate(${fixed((t*22)%220-70)} 0)`);
       elements.cool.setAttribute('transform',`translate(128 ${fixed(122-18*(1-w[0]))}) scale(1.09 1.02) translate(-128 -122)`);
-      elements.peaceleft.setAttribute('transform',`translate(40 ${fixed(144+22*(1-w[1])+Math.sin(t*5)*2)}) rotate(-8)`);
-      elements.peaceright.setAttribute('transform',`translate(216 ${fixed(144+22*(1-w[1])-Math.sin(t*5)*2)}) scale(-1 1) rotate(-8)`);
-      elements.salute.setAttribute('transform',`translate(60 ${fixed(132+30*(1-w[2]))}) scale(1.26) translate(-64 -124) rotate(${fixed(-8*(1-w[2])+Math.sin(t*3)*1.5)} 64 124)`);
-      elements.thumb.setAttribute('transform',`translate(199 ${fixed(151+20*(1-w[4])+Math.sin(t*4)*2)}) scale(1.23) translate(-199 -145)`);
-      elements.think.setAttribute('transform',`translate(${fixed(128+Math.sin(t*1.5)*1.5)} ${fixed(196+14*(1-w[5]))}) scale(1.25) translate(-128 -203)`);
-      elements.fists.setAttribute('transform',`translate(128 ${fixed(188+Math.sin(t*10)*2.5)}) scale(1.2) translate(-128 -191)`);
+      elements.peaceleft.setAttribute('transform',`translate(44 ${fixed(144+22*(1-w[1])+Math.sin(t*5)*2)}) rotate(-8)`);
+      elements.peaceright.setAttribute('transform',`translate(212 ${fixed(144+22*(1-w[1])-Math.sin(t*5)*2)}) scale(-1 1) rotate(-8)`);
+      elements.salute.setAttribute('transform',`translate(57 ${fixed(144+30*(1-w[2]))}) rotate(${fixed(-8*(1-w[2])+Math.sin(t*3)*1.5)})`);
+      elements.thumb.setAttribute('transform',`translate(205 ${fixed(149+20*(1-w[4])+Math.sin(t*4)*2)})`);
+      elements.think.setAttribute('transform',`translate(${fixed(128+Math.sin(t*1.5)*1.5)} ${fixed(193+14*(1-w[5]))})`);
+      elements.fists.setAttribute('transform',`translate(0 ${fixed(14*(1-w[6])+Math.sin(t*10)*2.5)})`);
       elements.heartleft.setAttribute('transform',`translate(46 ${fixed(213-Math.sin(t*2)*4)}) scale(${fixed(.9+Math.sin(t*4)*.07)}) rotate(-17)`);
       elements.heartright.setAttribute('transform',`translate(204 ${fixed(88+Math.sin(t*2.1)*4)}) scale(${fixed(1+Math.sin(t*4+.5)*.08)}) rotate(15)`);
       setWeight('star',w[2]*(.75+Math.sin(t*4)*.25));

@@ -18,6 +18,29 @@ const advance=(body,seconds)=>{for(let i=0;i<seconds*60;i++)body.step(1/60);};
 const scales=group=>group.getAttribute('transform').match(/scale\(([^)]+)\)/)[1].split(' ').map(Number);
 
 describe('hologram expression transitions',()=>{
+ it('keeps smile contours symmetric through love, laughter, victory and speech',()=>{
+  const group=svg(),figure=createHoloFigure();let t=0;
+  for(const expression of ['love','happy','victory','love']){
+   figure.request(expression,10);
+   for(let i=0;i<45;i++){
+    t+=1/60;figure.draw(group,null,{...frame(expression,t),talk:i%2?.8:0});
+    const numbers=group.querySelector('[data-part="mouth"]').getAttribute('d').match(/-?\d+(?:\.\d+)?/g).map(Number);
+    const points=Array.from({length:numbers.length/2},(_,i)=>numbers.slice(i*2,i*2+2));
+    const error=Math.max(...points.map(([x,y])=>Math.min(...points.map(([u,v])=>Math.hypot(256-x-u,y-v)))));
+    expect(error,expression).toBeLessThan(.02);
+   }
+  }
+ });
+ it('moves teeth, mouth and clipping together when following the pointer',()=>{
+  const group=svg(),figure=createHoloFigure();
+  for(let i=1;i<90;i++)figure.draw(group,null,{...frame('love',i/60),look:[-5,3]});
+  const mouth=group.querySelector('[data-part="mouth"]'),teeth=group.querySelector('[data-part="teeth"]');
+  const movingFace=mouth.closest('[data-part="face"]');
+  expect(teeth.closest('[data-part="face"]')).toBe(movingFace);
+  expect(movingFace.getAttribute('transform')).toMatch(/translate\(-/);
+  const clip=teeth.parentElement.getAttribute('clip-path');
+  expect(group.querySelector(clip.slice(4,-1)).querySelector('path').getAttribute('d')).toBe(mouth.getAttribute('d'));
+ });
  it('preserves position and velocity when a cry is interrupted by a salute',()=>{
   const motion=new FaceMotion();motion.set('cry');for(let i=0;i<15;i++)motion.step(1/60);
   const position=[...motion.values],velocity=[...motion.velocity];motion.set('salute');
