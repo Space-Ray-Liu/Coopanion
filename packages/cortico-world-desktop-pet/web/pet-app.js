@@ -95,6 +95,8 @@ const holdRoam = (seconds) => body?.set({ hold: seconds });
 host?.onFloor?.((px) => { below = px; body?.set({ bounds: bounds() }); });
 // the window reads the windows on its display only while the body on screen asks for them (`watchWindows`)
 host?.onWindows?.((desk) => body?.setWindows(desk));
+let desktopSystem=null;
+host?.onSystem?.(state=>{desktopSystem=state;body?.setSystem(state);});
 addEventListener('resize', () => {
   body?.set({ bounds: bounds() });
   // the World reads walk targets and drop spots against the stage the pet is on now
@@ -204,6 +206,8 @@ async function swapBody(s) {
   body?.dispose();
   body = next;
   host?.watchWindows?.(next.needsWindows);
+  host?.watchSystem?.(next.needsSystem);
+  next.setSystem(desktopSystem&&Date.now()-desktopSystem.sampledAt<12000?desktopSystem:null);
   words = new Map(pack.vocab.map((w) => [w.id, w]));
   shownPack = pack;
   lightFor(s);

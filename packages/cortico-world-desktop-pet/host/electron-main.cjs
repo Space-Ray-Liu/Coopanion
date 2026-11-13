@@ -19,7 +19,7 @@
  * The tray's words follow the app language the page reports (`petHost.setLanguage`), from the pages'
  * tables (web/i18n); the windows' titles are the pages' own.
  */
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen, session, shell, systemPreferences } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen, session, shell, systemPreferences, powerMonitor } = require('electron');
 const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { createCursorSource } = require('./cursor.cjs');
@@ -27,6 +27,7 @@ const { createMouseLease, FORWARD_MOVES } = require('./mouse-lease.cjs');
 const { createOverlaySource } = require('./overlay.cjs');
 const { createWindowSource, ledgesFrom, windowsFrom } = require('./windows.cjs');
 const { createAppStoreRule } = require('./app-store.cjs');
+const { createSystemSource } = require('./system-state.cjs');
 
 /** The pages' text table of `code`, falling back as web/i18n.js does. */
 async function pageText(code) {
@@ -352,6 +353,19 @@ function runPetHost({ url, parentPid = 0, tray: withTray = true }) {
     sentWindows = '';
     if (on && windows.available) { windowTimer = setInterval(readWindows, WINDOWS_EVERY_MS); readWindows(); }
   };
+  let systemTimer=null,systemSource=null,systemReading=false;
+  const readSystem=async()=>{
+    if(systemReading||!win||!win.isVisible()||!systemSource)return;
+    const source=systemSource;systemReading=true;
+    try{
+      const state=await source.read();
+      if(state&&source===systemSource&&win&&!win.isDestroyed())win.webContents.send('pet:system',state);
+    }catch{}finally{systemReading=false;}
+  };
+  const watchSystem=on=>{
+    clearInterval(systemTimer);systemTimer=null;systemSource?.close();systemSource=null;
+    if(on){systemSource=createSystemSource({powerMonitor});systemTimer=setInterval(()=>void readSystem(),2000);void readSystem();}
+  };
 
   /** The display the window belongs on: the one it was moved to, or the primary display once that one is gone. */
   const display = () => screen.getAllDisplays().find((d) => d.id === displayId) ?? screen.getPrimaryDisplay();
@@ -419,7 +433,7 @@ function runPetHost({ url, parentPid = 0, tray: withTray = true }) {
       if ((input.control || input.meta) && (['-', '_', '=', '+', '0'].includes(input.key) || ['NumpadAdd', 'NumpadSubtract', 'Numpad0'].includes(input.code))) event.preventDefault();
     });
     // a page loaded afresh asks for the windows again once its body is on
-    win.webContents.on('did-finish-load', () => { win.webContents.setZoomLevel(0); overlay.pageLoaded(); watchWindows(false); win.webContents.send('pet:floor', coverArea(display()).below); });
+    win.webContents.on('did-finish-load', () => { win.webContents.setZoomLevel(0); overlay.pageLoaded(); watchWindows(false); watchSystem(false); win.webContents.send('pet:floor', coverArea(display()).below); });
     // The page learns where the cursor is even when the click-through window misses its moves, and
     // it renews the mouse lease in its answer to every report: the report goes out on every tick,
     // not only when the pointer moved, so a cursor that rests still still gets a verdict.
@@ -443,7 +457,7 @@ function runPetHost({ url, parentPid = 0, tray: withTray = true }) {
       if (covered && !autoHidden && win.isVisible()) { autoHidden = true; win.hide(); }
       else if (!covered && autoHidden) { autoHidden = false; win.showInactive(); }
     }, FULLSCREEN_EVERY_MS);
-    win.on('closed', () => { appStore?.stop(); clearInterval(cursorTimer); clearInterval(fullscreenTimer); watchWindows(false); win = null; });
+    win.on('closed', () => { appStore?.stop(); clearInterval(cursorTimer); clearInterval(fullscreenTimer); watchWindows(false); watchSystem(false); win = null; });
     // page console lines reach the World's log through stdout
     win.webContents.on('console-message', (e) => { if (e.level !== 'debug') console.log(`[page:${e.level}] ${e.message}`); });
     win.webContents.on('did-fail-load', (_e, code, desc, failedUrl) => console.log(`[page:error] 加载失败 ${code} ${desc} ${failedUrl}`));
@@ -488,6 +502,7 @@ function runPetHost({ url, parentPid = 0, tray: withTray = true }) {
   onPet('pet:hideWhenFullscreen', (_e, on) => { hideWhenFullscreen = !!on; });
   onPet('pet:clickThrough', (_e, on) => mouse.lock(on));
   onPet('pet:watchWindows', (_e, on) => watchWindows(!!on));
+  onPet('pet:watchSystem', (_e, on) => watchSystem(!!on));
   onPet('pet:openDress', () => openDress());
   let language = 'zh';
   onPet('pet:language', (_e, code) => {

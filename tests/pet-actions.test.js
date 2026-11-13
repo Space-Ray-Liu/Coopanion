@@ -95,7 +95,7 @@ describe('the words the model can use', () => {
 
   it("a pack's own expression borrows a kit face's marks, and its own motion is a gesture its figure draws", () => {
     const frames = [];
-    const pet = barePet(undefined, { words: { facepalm: { expression: { like: 'worried' } }, salute: { motion: { seconds: 1.2 } } } });
+    const pet = barePet(undefined, { words: { facepalm: { expression: { like: 'worried' } }, salute: { motion: { seconds: 1.2 } }, 'climb-left': { motion: { seconds: 1.2 } } } });
     pet.setFigure({ draw: (g, face, o) => frames.push({ face, o }) });
     run(pet, 1);
     expect(pet.doWord('facepalm')).toBe(true);
@@ -105,6 +105,9 @@ describe('the words the model can use', () => {
     expect(pet.doWord('salute')).toBe(true);
     run(pet, .5);
     expect(frames.at(-1).o.gesture.kind).toBe('salute');
+    expect(pet.doWord('climb-left')).toBe(true);run(pet,.5);
+    expect(frames.at(-1).o.gesture.kind).toBe('climb-left');
+    expect(pet.pet.mode).toBe('idle');
     expect(pet.doWord('fly')).toBe(false);
   });
 

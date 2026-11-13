@@ -93,7 +93,7 @@ const FACE_TONES = {
   smug: 'wink', worried: 'hmm', determined: 'pop', flustered: 'shy', scared: 'surprised', excited: 'sparkle', cry: 'sad', confused: 'hmm',
 };
 /** Body modes in which the figure travels across the stage or squashes fast (dancing steps and sways on the spot). */
-const MOVING_MODES = new Set(['drag', 'air', 'crouch', 'land', 'walk', 'run', 'dance']);
+const MOVING_MODES = new Set(['drag', 'air', 'crouch', 'land', 'walk', 'run', 'dance', 'climb']);
 /** Points on the body in logo units, for a figure that names none: where the eyes look from, where a tear starts,
  *  where z's and hearts start ([x from, x to, y]), the bubble's spot. `tears` (one start under each eye) has no default. */
 const ANCHORS = { gaze: [140, 117], tear: [166, 136], z: [196, 40], hearts: [90, 175, 34], bubble: [128, 0] };
@@ -132,6 +132,10 @@ const HITS = [[128, 128, 108]];
  * leaves them out, and the frame's `gesture` ({ kind, k: 0..1 }, or null) says which one is playing and how far.
  * `figure.anchors`, `figure.extent` ([x0, y0, x1, y1]) and `figure.hits` ([[x, y, r]]) are in logo units; each
  * is read every frame, so a getter may follow the skin. `figure.setSkin(skin)` hears each skin change.
+ * `opts.rest.after` enables sustained idle sleep (seconds). `opts.climb` enables the pack's `climb-left`
+ * and `climb-right` words, with `height` (share of stage height), `speed` (stage pixels/s) and `rest` (seconds).
+ * `opts.impact` shrinks user-thrown landings above `speed`, to `scale` for `seconds`, with `tears` seconds of damage.
+ * Frames add `size`, `impact`, `effort` and `wall` (left/right/null); absent options keep the kit's usual behaviour.
  */
 export function createPet(els, opts) {
   const { petG, shadowEl, fxG } = els;
@@ -155,7 +159,8 @@ export function createPet(els, opts) {
     eyeSig: '', eyeCur: null, eyePrev: null, eyeDims: [[16, 16, 0, 0], [16, 16, 0, 0]], swapAge: 9,
     glance: [0, 0], glanceAt: 0, swing: 0, swingV: 0, prevA: null, velX: 0, talkK: 0, sfxAt: 0, skid: false, cue: 0,
     pulse: null, walkId: 0, walkWord: null, listening: false, thinking: false, thoughtShown: false, placed: false, noteAt: 0, tearN: 0,
-    cursor: '', status: null,
+    cursor: '', status: null, size: 1, smallUntil: 0, damageUntil: 0, effort: 0,
+    idleSeconds: null, idleAt: 0, activityAt: 0, idleSleep: false, wall: null, wallPhase: null, wallRest: 0,
   };
   const pointer = { x: -1e4, y: -1e4, inside: false, vx: 0, samples: [] };
   let press = null, strokeAcc = 0, petCool = 0;
@@ -165,6 +170,8 @@ export function createPet(els, opts) {
   const visualDirection = () => custom?.mirror === false ? 1 : pet.facing;
   const visualFacing = () => custom?.mirror === false ? 1 : pet.faceVis;
   const turning = () => custom?.mirror !== false && Math.abs(pet.faceVis - pet.facing) > .05;
+  const drawScale = () => S * pet.size;
+  const wallTop = () => Math.max(H * (1 - opts.climb.height) + (256 - (custom?.extent?.[1] ?? 12)) * drawScale(), 260 * drawScale());
   const anchors = () => ({ ...ANCHORS, ...custom?.anchors });
   let A = anchors();
   const minX = () => 104 * S + 8, maxX = () => W - 104 * S - 8;
@@ -188,7 +195,8 @@ export function createPet(els, opts) {
     pet.target = clamp(pet.target, minX(), maxX());
     pet.gy = freeGround ? clamp(pet.gy, minY(), floorY) : floorY;
     pet.targetY = freeGround ? clamp(pet.targetY, minY(), floorY) : floorY;
-    if (pet.mode !== 'air' && pet.mode !== 'drag') pet.fy = pet.gy;
+    if (pet.mode === 'climb') pet.fy = clamp(pet.fy, Math.min(floorY, wallTop()), floorY);
+    else if (pet.mode !== 'air' && pet.mode !== 'drag') pet.fy = pet.gy;
   }
 
   function toStage(lx, ly) {
@@ -199,7 +207,7 @@ export function createPet(els, opts) {
   }
   /** The hit circles in stage pixels. */
   function hits() {
-    return (custom?.hits ?? HITS).map(([x, y, r]) => ({ ...toStage(x, y), r: r * S }));
+    return (custom?.hits ?? HITS).map(([x, y, r]) => ({ ...toStage(x, y), r: r * drawScale() }));
   }
   function hitPet(p) {
     return hits().some((c) => Math.hypot(p.x - c.x, p.y - c.y) < c.r);
@@ -215,6 +223,7 @@ export function createPet(els, opts) {
     // a walk or run asked for as a word is done once the body stops going, whatever stopped it
     if ((prev === 'walk' || prev === 'run') && pet.walkWord && m !== prev) { onEvent('done', { word: pet.walkWord }); pet.walkWord = null; }
     pet.mode = m; pet.modeT = 0; pet.turned = false; pet.startle = false; pet.skid = false; pet.cue = 0;
+    if (m !== 'climb') pet.wall = pet.wallPhase = null;
     Object.assign(pet, o);
     if (prev !== m) onEvent('mode', { mode: m });
   }
@@ -232,6 +241,10 @@ export function createPet(els, opts) {
   /** Runs a motion. Returns false when the body cannot take it now (in the air, being dragged). */
   function act(a) {
     if (busy()) return false;
+    pet.idleSleep = false;
+    if (pet.mode === 'climb' && a !== 'climb-left' && a !== 'climb-right') {
+      pet.vy = 0; pet.vx = pet.wall === 'left' ? 50 : -50; pet.airKind = 'jump'; setMode('air'); return false;
+    }
     pet.expr = null; pet.lastAct = a;
     const seated = pet.mode === 'sleep' || pet.mode === 'sit';
     switch (a) {
@@ -253,6 +266,12 @@ export function createPet(els, opts) {
       case 'shiver': pulse('shiver', 1.8); play('shiver', 'move'); break;
       case 'flap': setMode('crouch', { jumpV: 540, jumpVx: 0 }); pulse('flap', 1.4); holdFace('happy', 1.6); play('chirps', 'move'); break;
       case 'dance': setMode('dance', { dur: 3.2 }); holdFace('happy', 3.4); play('dance', 'move'); break;
+      case 'climb-left': case 'climb-right':
+        if (opts.climb) {
+          setMode('climb', { wall: a === 'climb-left' ? 'left' : 'right', wallPhase: 'approach', wallRest: 0 });
+          break;
+        }
+        // Without the opt-in, these names remain available for a pack's own gestures.
       default: {
         // a gesture of the pack's own, drawn by its figure from frame.gesture
         const m = words[a]?.motion;
@@ -318,6 +337,9 @@ export function createPet(els, opts) {
    */
   function walkTo(x, run, walkId, y) {
     if (busy()) return false;
+    if (pet.mode === 'climb') {
+      pet.vy = 0; pet.vx = pet.wall === 'left' ? 50 : -50; pet.airKind = 'jump'; setMode('air'); return false;
+    }
     if (pet.mode === 'sleep' || pet.mode === 'sit') setMode('wake', { startle: true });
     const target = clamp(x, minX(), maxX());
     const targetY = freeGround && typeof y === 'number' && Number.isFinite(y) ? clamp(y, minY(), floorY) : pet.gy;
@@ -352,6 +374,7 @@ export function createPet(els, opts) {
     const calm = roam === 'calm';
     const opts2 = [['walk', calm ? 10 : 28], ['run', calm ? 0 : 12], ['look', 14], ['jump', calm ? 2 : 8], ['sit', 16], ['expr', 12], ['wait', calm ? 30 : 10]]
       .filter(o => o[1] > 0 && (o[0] !== pet.lastAct || o[0] === 'wait'));
+    if (opts.climb) opts2.push(['climb-left', calm ? 1 : 4], ['climb-right', calm ? 1 : 4]);
     let r = Math.random() * opts2.reduce((a, o) => a + o[1], 0), pick = 'wait';
     for (const o of opts2) { if ((r -= o[1]) < 0) { pick = o[0]; break; } }
     if (pick === 'look') { setMode('look'); pet.lastAct = 'look'; }
@@ -377,7 +400,7 @@ export function createPet(els, opts) {
     if (!effect) return false;
     for (let i = 0; i < effect.count; i++) {
       const angle = rnd(0, Math.PI * 2), dx = Math.cos(angle), dy = Math.sin(angle);
-      const speed = rnd(effect.speed * .4, effect.speed) * S;
+      const speed = rnd(effect.speed * .4, effect.speed) * drawScale();
       emit('dust', toStage(effect.at[0] + dx * effect.radius[0], effect.at[1] + dy * effect.radius[1]), {
         vx: dx * speed, vy: dy * speed, life: rnd(...effect.life), seed: Math.random(),
       });
@@ -389,6 +412,15 @@ export function createPet(els, opts) {
     // a frame that took no time has nothing to advance, and the horizontal speed below divides by its length
     if (!(dt > 0 && dt < Infinity)) return;
     T += dt; pet.modeT += dt;
+    pet.size = lerp(pet.size, T < pet.smallUntil ? opts.impact.scale : 1, ease(5, dt));
+    const idle = pet.idleSeconds === null ? T - pet.activityAt : pet.idleSeconds + T - pet.idleAt;
+    if (pet.idleSleep && (idle < 2 || pet.listening || pet.thinking || pet.status || opts.dialogOpen?.() || pet.effort > .2)) {
+      pet.idleSleep = false; setMode('wake', { startle: false });
+    }
+    if (opts.rest && idle >= opts.rest.after && T - pet.activityAt > 3 && T > hold && !opts.dialogOpen?.()
+      && !pet.listening && !pet.thinking && !pet.status && pet.effort < .2 && ['idle', 'look', 'sit'].includes(pet.mode)) {
+      setMode('sleep', { dur: 1e9, idleSleep: true });
+    }
     A = anchors();
     const m = pet.mode, mt = pet.modeT;
     let sqT = 0, strideT = 0, liftT = 0, leanT = 0, sitT = 0, bobT = 0, rate = 0, lookT = [0, 0], tiltT = 0;
@@ -474,7 +506,7 @@ export function createPet(els, opts) {
       }
       case 'sleep': {
         sitT = 1; drowseT = 1; leanT = 5;
-        if (free && mt > pet.dur) setMode('wake');
+        if (free && !pet.idleSleep && mt > pet.dur) setMode('wake');
         break;
       }
       case 'wake': {
@@ -550,9 +582,30 @@ export function createPet(els, opts) {
       }
       case 'drag': {
         pet.dx = lerp(pet.dx, pointer.x, ease(28, dt));
-        pet.dy = lerp(pet.dy, Math.min(pointer.y, floorY - 245 * S), ease(28, dt));
+        pet.dy = lerp(pet.dy, Math.min(pointer.y, floorY - 245 * drawScale()), ease(28, dt));
         tiltT = clamp(pointer.vx * .035, -40, 40); tk = 90; tc = 5;
         if (Math.abs(pointer.vx) > 500 && T > pet.sfxAt) { play('squeak', 'touch'); pet.sfxAt = T + rnd(.4, .7); }
+        break;
+      }
+      case 'climb': {
+        const targetX = pet.wall === 'left' ? minX() : maxX();
+        const go = (value, target, speed) => value + Math.sign(target - value) * Math.min(Math.abs(target - value), speed * dt);
+        pet.x = go(pet.x, targetX, 100);
+        if (pet.wallPhase === 'approach' && Math.abs(pet.x - targetX) < 1) pet.wallPhase = 'up';
+        const top = Math.min(floorY, wallTop());
+        if (pet.wallPhase === 'up') {
+          pet.fy = go(pet.fy, top, opts.climb.speed);
+          if (Math.abs(pet.fy - top) < 1) { pet.wallPhase = 'rest'; pet.wallRest = T + opts.climb.rest; }
+        } else if (pet.wallPhase === 'rest' && T >= pet.wallRest) pet.wallPhase = 'down';
+        else if (pet.wallPhase === 'down') {
+          pet.fy = go(pet.fy, floorY, opts.climb.speed * .8);
+          if (Math.abs(pet.fy - floorY) < 1) {
+            const word = `climb-${pet.wall}`;
+            pet.fy = pet.gy = floorY; setMode('idle'); pet.nextAt = T + rnd(5, 10); onEvent('done', { word });
+          }
+        }
+        pet.fy = Math.max(top, pet.fy);
+        lookT = [pet.wall === 'left' ? -2 : 2, -2];
         break;
       }
     }
@@ -675,6 +728,9 @@ export function createPet(els, opts) {
     pet.fy = pet.gy; pet.vy = 0; pet.vx = 0; pet.gvy = 0;
     pet.sqv += clamp(impact * .0024, .8, 4.5);
     play('land', 'move', kind !== 'jump' && impact > 1000);
+    if (opts.impact && kind === 'throw' && impact >= opts.impact.speed) {
+      pet.smallUntil = T + opts.impact.seconds; pet.damageUntil = T + opts.impact.tears;
+    }
     if (!burst('land')) dustAt(128, impact > 900 ? 7 : 3, 70);
     if (kind === 'throw' && impact > 1000) { setMode('dizzy'); onEvent('touch', { kind: 'crash' }); return; }
     setMode('land');
@@ -695,7 +751,7 @@ export function createPet(els, opts) {
     if (fc.shake) AX += Math.sin(T * 60) * 1.4;
     else if (pet.pulse?.kind === 'shiver') AX += Math.sin(T * 75) * 1.1 * envelope((T - pet.pulse.t0) / pet.pulse.dur, .08, .85);
     // a figure may keep tilt and lean off the whole group and bend its own parts instead
-    const facing = visualFacing(), kx = S * facing * sx, ky = S * sy, lean = pet.lean * facing;
+    const ds = drawScale(), facing = visualFacing(), kx = ds * facing * sx, ky = ds * sy, lean = pet.lean * facing;
     const rot = custom?.groupTilt ? custom.groupTilt(pet.mode, pet.tilt, lean) : pet.tilt + lean;
     pet.xf = { AX, AY, ax, ay, kx, ky, rot };
     petG.setAttribute('transform', `translate(${f(AX)} ${f(AY)}) rotate(${f(rot)}) scale(${kx.toFixed(4)} ${ky.toFixed(4)}) translate(${-ax} ${-ay})`);
@@ -711,15 +767,16 @@ export function createPet(els, opts) {
     custom.draw(petG, face, {
       look: pet.look, legs, low: pet.low, t: T, blink, eyeClose, acc: skin, swing: pet.swing,
       face: fname, mode: pet.mode, modeT: pet.modeT, talk: pet.talkK, status: pet.status, drowse: pet.drowse, sit: pet.sitK, facing, tilt: pet.tilt, lean, groupRot: rot, gesture,
+      size: pet.size, impact: Math.max(0, (pet.damageUntil - T) / (opts.impact?.tears ?? 1)), effort: pet.effort, wall: pet.wall,
     });
 
-    const footY = drag ? pet.dy + 220 * S * 1.09 : pet.fy;
+    const footY = drag ? pet.dy + 220 * ds * 1.09 : pet.fy;
     // a free body held up casts its shadow just under it, there being no floor below it to fall to
     const shadowY = freeGround && drag ? footY + 40 * S : groundY();
     const k = clamp(1 - (shadowY - footY) / 420, .3, 1);
     shadowEl.setAttribute('cx', f(AX)); shadowEl.setAttribute('cy', f(shadowY - 2));
-    shadowEl.setAttribute('rx', f(72 * S * k * (1 + pet.sq * .5))); shadowEl.setAttribute('ry', f(10 * S * k + 1));
-    shadowEl.setAttribute('opacity', f(k));
+    shadowEl.setAttribute('rx', f(72 * ds * k * (1 + pet.sq * .5))); shadowEl.setAttribute('ry', f(10 * ds * k + 1));
+    shadowEl.setAttribute('opacity', f(pet.mode === 'climb' ? .15 : k));
 
     let s = '';
     const sc = S / .48;
@@ -727,7 +784,7 @@ export function createPet(els, opts) {
     const zPaint = custom?.colors?.z ? `stroke="${custom.colors.z}"` : 'class="eye"';
     for (const p of P) {
       const a = p.age / p.life;
-      const drawing = custom?.particles?.draw?.(p, { scale: S, progress: a });
+      const drawing = custom?.particles?.draw?.(p, { scale: ds, progress: a });
       if (drawing != null) {
         s += drawing;
       } else if (p.type === 'z') {
@@ -767,6 +824,8 @@ export function createPet(els, opts) {
     onEvent('touch', { kind: 'grab' });
   }
   function pointerDown(p) {
+    pet.activityAt = T;
+    if(pet.idleSleep){pet.idleSleep=false;setMode('wake',{startle:true});}
     Object.assign(pointer, { x: p.x, y: p.y, inside: true });
     if (!hitPet(p)) return false;
     press = { x: p.x, y: p.y, t: now(p) };
@@ -777,6 +836,7 @@ export function createPet(els, opts) {
   }
   /** Returns the cursor the stage should show. */
   function pointerMove(p) {
+    if (p.x !== pointer.x || p.y !== pointer.y) pet.activityAt = T;
     const t = now(p);
     const ddx = p.x - pointer.x, ddy = p.y - pointer.y;
     Object.assign(pointer, { x: p.x, y: p.y, inside: true });
@@ -817,6 +877,10 @@ export function createPet(els, opts) {
         pet.vx = clamp(v.x, -1800, 1800); pet.vy = clamp(v.y, -1800, 1400);
       }
       pet.airKind = 'throw';
+      if (opts.climb && speed < 500 && foot.y >= wallTop() && (pet.x < minX() + 28 * S || pet.x > maxX() - 28 * S)) {
+        setMode('climb', { wall: pet.x < W / 2 ? 'left' : 'right', wallPhase: 'up', wallRest: 0 });
+        press = null; onEvent('touch', { kind: 'drop', x: Math.round(pet.x) }); return;
+      }
       if (speed > 700) play('whoosh', 'move');
       setMode('air');
       onEvent('touch', { kind: speed > 700 ? 'throw' : 'drop', x: Math.round(pet.x) });
@@ -846,7 +910,7 @@ export function createPet(els, opts) {
     if (pet.mode !== 'drag') return;
     Object.assign(pointer, { x: p.x, y: p.y, vx: 0, samples: [] });
     pet.x = clamp(p.x, minX(), maxX());
-    pet.fy = Math.min(floorY, p.y + 220 * S);
+    pet.fy = Math.min(floorY, p.y + 220 * drawScale());
     if (freeGround) pet.gy = clamp(pet.fy, minY(), floorY);
     pet.vx = 0; pet.vy = 0; pet.gvy = 0;
     pet.airKind = 'drop';
@@ -924,6 +988,11 @@ export function createPet(els, opts) {
     setThinking(on) { pet.thinking = on; },
     /** What the bot is busy with as the page's status bubble names it (`kind`), or null; the figure reads it from `frame.status`. */
     setStatus(kind) { pet.status = typeof kind === 'string' ? kind : null; },
+    setActivity(s) {
+      if (s.idleSeconds === null) pet.idleSeconds = null;
+      if (typeof s.idleSeconds === 'number' && Number.isFinite(s.idleSeconds)) { pet.idleSeconds = Math.max(0, s.idleSeconds); pet.idleAt = T; }
+      if (typeof s.effort === 'number' && Number.isFinite(s.effort)) pet.effort = clamp(s.effort, 0, 1);
+    },
     /** The page shows the bot's thinking in a bubble of its own. */
     setThoughtShown(on) { pet.thoughtShown = on; },
     anchor,
@@ -954,7 +1023,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
  * null, or a target it does not name, answers the move `busy`.
  *
  * The body takes these calls from the page: step(dt), layout(), do(word), walk(x, run, id), stopWalk(id), pointer(type, p),
- * drop(p), shift(dx, dy), place(x, facing, y), move(args, id), set({ roam, hold, dialogOpen, listening, thinking, thoughtShown, status, skin, theme }),
+ * drop(p), shift(dx, dy), place(x, facing, y), move(args, id), set({ roam, hold, dialogOpen, listening, thinking, thoughtShown, status, skin, theme, idleSeconds, effort }),
  * cue(kind), talk(), setScheme(id, o), dispose(); `words` lists every word its do() knows.
  */
 export function createBody(host, opts) {
@@ -1019,6 +1088,7 @@ export function createBody(host, opts) {
       if (typeof s.thinking === 'boolean') ctl.setThinking(s.thinking);
       if (typeof s.thoughtShown === 'boolean') ctl.setThoughtShown(s.thoughtShown);
       if ('status' in s) ctl.setStatus(s.status);
+      ctl.setActivity(s);
       if (s.skin) { ctl.setSkin(s.skin); if (opts.skinCss) skinStyle.textContent = opts.skinCss(s.skin); }
       if (s.theme) doc.documentElement.dataset.theme = s.theme;
     },

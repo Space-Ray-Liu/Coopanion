@@ -27,6 +27,9 @@ contextBridge.exposeInMainWorld('petHost', {
   watchWindows: (on) => ipcRenderer.send('pet:watchWindows', !!on),
   /** Those windows while they are read, each time they change: `{ ledges, windows }` in page pixels as web/figure-frame.js describes them, or null when they cannot be read. */
   onWindows: (cb) => ipcRenderer.on('pet:windows', (_e, desk) => cb(Array.isArray(desk?.ledges) && Array.isArray(desk?.windows) ? desk : null)),
+  /** Read-only idle seconds and CPU, GPU and fan fractions (null when unavailable). */
+  watchSystem: (on) => ipcRenderer.send('pet:watchSystem', !!on),
+  onSystem: (cb) => ipcRenderer.on('pet:system', (_e, state) => cb(state)),
   /** Where the cursor is, in page pixels, or null off the window: called every 15 ms on Windows, 10 times a second elsewhere. */
   onCursor: (cb) => ipcRenderer.on('pet:cursor', (_e, p) => cb(p)),
   /** Screen pixels behind `rect`, minus `skip` rects (page coordinates), as a flat [r, g, b, …]; null where the screen cannot be read. */

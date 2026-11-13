@@ -36,6 +36,10 @@
  *   stopped it, which the bot reads; `drag` when it was picked up), `done` ({ word }) for a word
  *   that ends on its own, `touch` ({ kind: poke | pet | grab | drop | throw | crash, ... }), `mode` ({ mode }).
  *
+ * A pack with `needs: ['system']` also receives `set({ system })`: idleSeconds, cpuLoad, gpuLoad,
+ * fanFraction and sampledAt. Load fractions are 0..1; unavailable readings are null. Browser pages
+ * without the desktop host provide no hardware samples. The host reads these only while requested.
+ *
  * Messages in: `init { entry, export, base, model, scheme, start, theme, bounds, language }` (the app language,
  * for the frame's own error messages), then `tick { dt }`
  * once a frame, `windows { ledges, windows }` (null when there are none to read) and the calls above by name. Out: `loaded`, `ready { z, words }`, `frame { layout, events: [{ kind,

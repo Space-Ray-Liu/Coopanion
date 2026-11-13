@@ -2,7 +2,7 @@
   "manifest": 2,
   "api": 2,
   "id": "holoface",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "name": {
     "zh": "薄荷全息脸",
     "zh-Hant": "薄荷全息臉",
@@ -17,8 +17,8 @@
     "ru": "Мятная голограмма"
   },
   "about": {
-    "zh": "一张薄荷绿色全息电子脸，保留扫描线、像素高光、圆角切边和悬浮手势。表情连续形变，眼睛、嘴和手势都不会瞬间换图。任务真实失败时用大哭；任务确认成功或用户夸奖时用举手致敬；由你根据上下文判断，不把每次工具执行结束都当成任务成功。",
-    "en": "A mint-green holographic face with scanlines, pixel highlights, chamfered corners and floating hands. Expressions morph continuously. When a task actually fails, use cry. When a task is confirmed successful or the person explicitly praises you, use salute. Judge these meanings from context; an individual tool finishing does not by itself mean the task succeeded."
+    "zh": "薄荷绿色全息电子脸，近方形屏幕、扫描线、像素高光和悬浮机械方块。没有手指和手腕。表情连续形变，眼睛、嘴和方块都不会瞬间换图。可沿屏幕左右边缘攀爬，最高停在屏幕三分之二高度；长时间无操作时休眠；明显摔落后暂时缩小并出现机械泪痕。高风扇读数时微红、显示机械绿焰和使劲表情；风扇不可读时用持续 CPU/GPU 高负载近似触发。任务真实失败时用大哭，确认成功或用户夸奖时用致敬；根据上下文判断，不把每个工具结束都当成任务成功。",
+    "en": "A mint holographic face with a nearly square screen, scanlines, pixel highlights and floating square mechanical modules, without fingers or wrists. Expressions morph continuously. It climbs the screen sides up to two thirds of the height, sleeps during prolonged inactivity, and temporarily shrinks with circuit-like tears after a hard user-thrown landing. High fan readings add a red tint, green digital exhaust and a straining face; sustained CPU/GPU load is the fallback when fan data is unavailable. For actual task failure use cry; for confirmed success or explicit praise use salute. Judge the context; an individual tool finishing is not by itself task success."
   },
   "author": "Coopanion custom",
   "license": "AGPL-3.0-or-later",
@@ -26,7 +26,7 @@
   "export": "createHoloBody",
   "thumb": "thumb.svg",
   "effects": {
-    "reach": 0.18
+    "reach": 0.3
   },
   "vocab": [
     {
@@ -688,6 +688,97 @@
         "en": "The hologram follows the body movement."
       },
       "seconds": 1
+    },
+    {
+      "id": "climb-left",
+      "kind": "motion",
+      "names": {
+        "zh": [
+          "左侧攀爬"
+        ],
+        "zh-Hant": [
+          "左側攀爬"
+        ],
+        "en": [
+          "climbleft"
+        ],
+        "ja": [
+          "左壁登り"
+        ],
+        "ko": [
+          "왼쪽등반"
+        ],
+        "fr": [
+          "grimpergauche"
+        ],
+        "de": [
+          "linksklettern"
+        ],
+        "es-419": [
+          "treparizquierda"
+        ],
+        "pt-BR": [
+          "escalarEsquerda"
+        ],
+        "it": [
+          "scalasinistra"
+        ],
+        "ru": [
+          "лезтьслева"
+        ]
+      },
+      "about": {
+        "zh": "沿屏幕左侧边缘攀爬，最高到屏幕三分之二高度，停留后返回地面。",
+        "en": "Climb the left screen edge up to two thirds of its height, pause, then descend to the floor."
+      },
+      "seconds": 60
+    },
+    {
+      "id": "climb-right",
+      "kind": "motion",
+      "names": {
+        "zh": [
+          "右侧攀爬"
+        ],
+        "zh-Hant": [
+          "右側攀爬"
+        ],
+        "en": [
+          "climbright"
+        ],
+        "ja": [
+          "右壁登り"
+        ],
+        "ko": [
+          "오른쪽등반"
+        ],
+        "fr": [
+          "grimperdroite"
+        ],
+        "de": [
+          "rechtsklettern"
+        ],
+        "es-419": [
+          "treparderecha"
+        ],
+        "pt-BR": [
+          "escalarDireita"
+        ],
+        "it": [
+          "scaladestra"
+        ],
+        "ru": [
+          "лезтьсправа"
+        ]
+      },
+      "about": {
+        "zh": "沿屏幕右侧边缘攀爬，最高到屏幕三分之二高度，停留后返回地面。",
+        "en": "Climb the right screen edge up to two thirds of its height, pause, then descend to the floor."
+      },
+      "seconds": 60
     }
+  ],
+  "needs": [
+    "system"
   ]
 }

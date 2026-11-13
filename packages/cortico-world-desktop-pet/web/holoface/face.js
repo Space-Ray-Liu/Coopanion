@@ -1,6 +1,7 @@
 /** Continuous geometry for a mint hologram. Retargeting preserves velocity, including mid-expression. */
 import { holoParticles } from './particles.js';
 import { HANDS } from './hands.js';
+import { createExhaust } from './exhaust.js';
 const N = 32;
 const ellipse = (x, y, rx, ry, angle = 0) => Array.from({ length: N }, (_, i) => {
   const a = i * Math.PI * 2 / N, u = Math.cos(a) * rx, v = Math.sin(a) * ry;
@@ -34,8 +35,8 @@ function align(points) {
 }
 const eyes = (l, r) => [...l.flat(), ...r.flat()];
 function pose(left, right, mouth, props = {}) {
-  const eye = (shape, cx) => shape.map(([x,y]) => [128 + (cx-128)*.94 + (x-cx)*1.14, 125 + (y-126)]);
-  const lips = mouth.map(([x,y]) => [128 + (x-128)*1.1, 172 + (y-178)*.9]);
+  const eye = (shape, cx) => shape.map(([x,y]) => [128 + (cx-128)*.82 + (x-cx)*1.22, 127 + (y-126)]);
+  const lips = mouth.map(([x,y]) => [x, 164 + (y-178)*.9]);
   return [...eyes(align(eye(left,96)), align(eye(right,160))), ...align(lips).flat(), props.cool ?? 0, props.peace ?? 0, props.salute ?? 0, props.love ?? 0,
     props.thumb ?? 0, props.think ?? 0, props.laugh ?? 0, props.anger ?? 0, props.tears ?? 0, props.shock ?? 0];
 }
@@ -52,6 +53,7 @@ export const POSES = {
   angry: pose(shift(polygon([[-15,-14],[15,-2],[12,16],[-5,13]]),96,126), shift(polygon([[15,-14],[-15,-2],[-12,16],[5,13]]),160,126), polygon([[116,180],[140,180],[140,188],[116,188]]), {anger:1}),
   cry: pose(up(96,121), up(160,121), polygon([[112,164],[144,164],[148,174],[148,206],[108,206],[108,174]]), {tears:1}),
   surprised: pose(ellipse(96,126,7,21), ellipse(160,126,7,21), polygon([[120,173],[136,173],[137,197],[119,197]]), {shock:1}),
+  strained: pose(squeeze(96,126,1), squeeze(160,126,-1), polygon([[113,176],[143,176],[143,184],[113,184]]), {anger:.6}),
 };
 export class FaceMotion {
   constructor(initial = 'neutral') {
@@ -80,12 +82,12 @@ function path(points) {
   return `M${first.map(fixed).join(' ')} `+points.map((p,i)=>`Q${p.map(fixed).join(' ')} ${mid(p,points[(i+1)%points.length]).map(fixed).join(' ')}`).join(' ')+' Z';
 }
 const points = (values, offset, close=0, cy=126) => Array.from({length:N},(_,i)=>[values[offset+i*2], cy+(values[offset+i*2+1]-cy)*(1-close)]);
-const head = 'M73 64H183Q189 64 193 68L209 84Q213 88 213 95V183Q213 190 209 194L192 211Q188 215 181 215H75Q68 215 64 211L47 194Q43 190 43 183V95Q43 88 47 84L63 68Q67 64 73 64Z';
+const head = 'M78 62H178Q184 62 188 66L204 82Q208 86 208 92V188Q208 194 204 198L188 214Q184 218 178 218H78Q72 218 68 214L52 198Q48 194 48 188V92Q48 86 52 82L68 66Q72 62 78 62Z';
 const heart = 'M0 8C-27-7-16-28 0-15C16-28 27-7 0 8Z';
 let sequence = 0;
 export function createHoloFigure() {
   const motion = new FaceMotion();
-  let elements = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
+  let elements = null, exhaust = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
   const id = `hf${++sequence}`;
   const make = (group) => {
     group.innerHTML = `<defs>
@@ -100,34 +102,38 @@ export function createHoloFigure() {
       <clipPath id="${id}-mouthclip"><path data-part="mouthclip"/></clipPath>
     </defs>
     <g data-part="float">
+      <g data-part="exhaust"/>
       <path d="${head}" stroke="#35e2af" stroke-width="16" fill="none" opacity=".4" filter="url(#${id}-glow)"/>
       <path data-part="shell" d="${head}" fill="url(#${id}-glass)" stroke="#7afcce" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M74 71H182Q186 71 189 74L203 88Q206 91 206 96V182Q206 186 203 189L188 205Q185 208 180 208H76Q71 208 68 205L53 189Q50 186 50 182V96Q50 91 53 88L67 74Q70 71 74 71Z" fill="none" stroke="#d2ffef" stroke-width="1.2" opacity=".65"/>
-      <path d="M77 78H179L199 98V180L180 201H76L57 180V98Z" fill="none" stroke="#71e1b8" stroke-width="1.2" opacity=".5"/>
+      <path data-part="heat" d="${head}" fill="#ff6468" opacity="0"/>
+      <path d="M79 69H177L201 93V187L177 211H79L55 187V93Z" fill="none" stroke="#d2ffef" stroke-width="1.2" opacity=".65"/>
+      <path d="M82 76H174L194 96V184L174 204H82L62 184V96Z" fill="none" stroke="#71e1b8" stroke-width="1.2" opacity=".5"/>
       <g clip-path="url(#${id}-clip)"><path d="${head}" fill="url(#${id}-scan)"/><rect data-part="beam" x="42" y="40" width="174" height="10" fill="#b7ffe6" opacity=".12"/></g>
       <g data-part="face" fill="url(#${id}-pixels)" stroke="#bcffe8" stroke-width="1.2" stroke-linejoin="round" filter="url(#${id}-pixelglow)">
         <path data-part="left"/><path data-part="right"/><path data-part="mouth" fill="#4bd5ab"/>
-        <g clip-path="url(#${id}-mouthclip)" opacity=".8"><path data-part="teeth" d="M90 166Q128 173 166 166" fill="none" stroke="#d8fff2" stroke-width="4"/></g>
+        <g clip-path="url(#${id}-mouthclip)" opacity=".8"><path data-part="teeth" d="M90 158Q128 165 166 158" fill="none" stroke="#d8fff2" stroke-width="4"/></g>
       </g>
       <g data-part="cool"><path d="M72 106H122L119 139H70ZM134 106H184L186 139H137Z" fill="#258f74" stroke="#adffe3" stroke-width="4"/><path d="M121 115H137M80 111L74 132M91 111L84 133M143 111L139 131M155 111L148 133" fill="none" stroke="#bcffeb" stroke-width="4"/><g clip-path="url(#${id}-lenses)"><path data-part="shine" d="M70 98L50 146H62L82 98Z" fill="#dbfff3" opacity=".45"/></g></g>
-      <g data-part="tears" fill="#a5ffe2" stroke="#d0ffed" stroke-width="1"><g data-part="tearflow"/></g>
+      <g data-part="tears" fill="#a5ffe2" stroke="#d0ffed" stroke-width="1"><path data-part="teartracks" d="M89 141V153H83V169H89V202H95M167 141V153H173V169H167V202H161" fill="none" stroke-width="1.7" opacity=".65"/><path d="M80 156H91M80 162H91M165 156H176M165 162H176M85 190H93M163 190H171" fill="none" opacity=".5"/><g data-part="tearflow"/></g>
       <g data-part="peace" fill="#81e8c8" stroke="#c0ffed" stroke-width="3.5" stroke-linejoin="round"><g data-part="peaceleft"/><g data-part="peaceright"/></g>
       <g data-part="salute" fill="#82e8c6" stroke="#c7fff0" stroke-width="3" stroke-linejoin="round">${HANDS.salute}</g>
       <g data-part="thumb" fill="#83e9c8" stroke="#c3ffeb" stroke-width="3" stroke-linejoin="round">${HANDS.thumb}</g>
       <g data-part="think" fill="#8deace" stroke="#c4ffed" stroke-width="3" stroke-linejoin="round">${HANDS.think}</g>
       <g data-part="fists" fill="#8ae8c8" stroke="#c6ffec" stroke-width="3" stroke-linejoin="round"><g data-part="fistleft" transform="translate(54 189)">${HANDS.fist}</g><g data-part="fistright" transform="translate(202 189) scale(-1 1)">${HANDS.fist}</g></g>
+      <g data-part="wallmodules" fill="url(#${id}-hands)" stroke="#c6ffec" stroke-width="3"><g>${HANDS.fist}</g><g>${HANDS.fist}</g></g>
       <g data-part="hearts" fill="#ff977e" stroke="#ffd2b5" stroke-width="2"><path data-part="heartleft" d="${heart}"/><path data-part="heartright" d="${heart}"/></g>
       <path data-part="star" d="M59 76L63 90L77 94L63 99L59 113L54 99L40 94L54 90Z" fill="#d5fff0"/>
       <g data-part="anger" fill="#b8ffe3"><path d="M115 96V103M121 93V101M127 95V102" stroke="#b8ffe3" stroke-width="3"/></g>
     </g>`;
     const get = name => group.querySelector(`[data-part="${name}"]`);
-    elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','fists','hearts','heartleft','heartright','star','anger','beam'].map(name=>[name,get(name)]));
+    elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','fists','hearts','heartleft','heartright','star','anger','beam','exhaust','heat','wallmodules'].map(name=>[name,get(name)]));
+    exhaust=createExhaust(elements.exhaust,`${id}-pixelglow`);
     elements.peaceleft.innerHTML=HANDS.peace; elements.peaceright.innerHTML=HANDS.peace;
     for(const name of ['peace','salute','thumb','think','fists']){
       elements[name].setAttribute('fill',`url(#${id}-hands)`);
       elements[name].setAttribute('filter',`url(#${id}-pixelglow)`);
     }
-    elements.tearflow.innerHTML=Array.from({length:8},(_,i)=>`<rect x="${i<4?83:169}" width="7" height="12" rx="2"/>`).join('');
+    elements.tearflow.innerHTML=Array.from({length:8},()=>'<rect width="5" height="8"/>').join('');
   };
   const setWeight=(name,w)=>elements[name].setAttribute('opacity',Math.max(0,Math.min(1,w)).toFixed(3));
   const aliases={sad:'cry',worried:'cry',smile:'neutral',excited:'victory',shy:'love',smug:'smug',sleepy:'neutral',sleep:'neutral',dizzy:'surprised',dragged:'surprised',listening:'surprised',determined:'angry',run:'neutral',pout:'angry',scared:'surprised',flustered:'surprised',content:'neutral',wink:'salute',waking:'surprised',squeeze:'neutral',laugh:'happy'};
@@ -140,6 +146,8 @@ export function createHoloFigure() {
       let expression = requested && t<requestedUntil ? requested : (POSES[frame.face] ? frame.face : aliases[frame.face] ?? 'neutral');
       if (!requested && frame.face==='neutral' && frame.status) expression='thinking';
       if (requested && t>=requestedUntil) requested=null;
+      if (!requested && (frame.effort??0)>.4) expression='strained';
+      if (!requested && (frame.impact??0)>.15) expression='cry';
       if (frame.mode==='sleep') expression='neutral';
       if (motion.expression!==expression) motion.set(expression);
       motion.step(dt);
@@ -148,7 +156,7 @@ export function createHoloFigure() {
       const gaze=frame.look??[0,0], dx=gaze[0]*.3, dy=gaze[1]*.23;
       elements.face.setAttribute('transform',`translate(${fixed(dx)} ${fixed(dy)})`);
       elements.left.setAttribute('d',path(left)); elements.right.setAttribute('d',path(right));
-      for(const p of mouth) p[1]+=(p[1]-170)*((frame.talk??0)*.22+Math.sin(t*4)*w[9]*.06);
+      for(const p of mouth) p[1]+=(p[1]-162)*((frame.talk??0)*.22+Math.sin(t*4)*w[9]*.06);
       const mouthD=path(mouth); elements.mouth.setAttribute('d',mouthD);elements.mouthclip.setAttribute('d',mouthD);
       const dark=Math.max(0,Math.min(1,w[8]+w[9]));
       elements.mouth.setAttribute('fill',`rgb(${[124,233,196].map((n,i)=>Math.round(n+([57,142,116][i]-n)*dark)).join(',')})`);
@@ -157,22 +165,31 @@ export function createHoloFigure() {
       elements.float.setAttribute('transform',`translate(${fixed(Math.sin(t*21)*w[7]*.7)} ${fixed(bob)}) rotate(${fixed(Math.sin(t*1.2)*w[5]*3)} 128 155)`);
       elements.beam.setAttribute('y',String(64+(t*23)%151));
       ['cool','peace','salute','hearts','thumb','think','fists','anger','tears'].forEach((name,i)=>setWeight(name,w[i]));
+      const mechanicalTears=Math.max(w[8],frame.impact??0);
+      setWeight('tears',mechanicalTears);
+      elements.heat.setAttribute('opacity',String((frame.effort??0)*.32));
+      exhaust(t,frame.effort??0);
       elements.shine.setAttribute('transform',`translate(${fixed((t*22)%220-70)} 0)`);
       elements.cool.setAttribute('transform',`translate(128 ${fixed(122-18*(1-w[0]))}) scale(1.09 1.02) translate(-128 -122)`);
-      elements.peaceleft.setAttribute('transform',`translate(44 ${fixed(144+22*(1-w[1])+Math.sin(t*5)*2)}) rotate(-8)`);
-      elements.peaceright.setAttribute('transform',`translate(212 ${fixed(144+22*(1-w[1])-Math.sin(t*5)*2)}) scale(-1 1) rotate(-8)`);
-      elements.salute.setAttribute('transform',`translate(57 ${fixed(144+30*(1-w[2]))}) rotate(${fixed(-8*(1-w[2])+Math.sin(t*3)*1.5)})`);
+      elements.peaceleft.setAttribute('transform',`translate(44 ${fixed(142+22*(1-w[1])+Math.sin(t*3)*4)})`);
+      elements.peaceright.setAttribute('transform',`translate(212 ${fixed(142+22*(1-w[1])-Math.sin(t*3)*4)})`);
+      elements.salute.setAttribute('transform',`translate(57 ${fixed(112+30*(1-w[2])+Math.sin(t*3)*3)}) rotate(-12)`);
       elements.thumb.setAttribute('transform',`translate(205 ${fixed(149+20*(1-w[4])+Math.sin(t*4)*2)})`);
       elements.think.setAttribute('transform',`translate(${fixed(128+Math.sin(t*1.5)*1.5)} ${fixed(193+14*(1-w[5]))})`);
-      elements.fists.setAttribute('transform',`translate(0 ${fixed(14*(1-w[6])+Math.sin(t*10)*2.5)})`);
+      elements.fists.setAttribute('transform',`translate(0 ${fixed(14*(1-w[6])+Math.sin(t*3)*4)})`);
+      setWeight('wallmodules',frame.wall?1:0);
+      [...elements.wallmodules.children].forEach((module,i)=>module.setAttribute('transform',`translate(${frame.wall==='left'?21:235} ${fixed(113+i*64+Math.sin(t*5+i*Math.PI)*8)})`));
       elements.heartleft.setAttribute('transform',`translate(46 ${fixed(213-Math.sin(t*2)*4)}) scale(${fixed(.9+Math.sin(t*4)*.07)}) rotate(-17)`);
       elements.heartright.setAttribute('transform',`translate(204 ${fixed(88+Math.sin(t*2.1)*4)}) scale(${fixed(1+Math.sin(t*4+.5)*.08)}) rotate(15)`);
       setWeight('star',w[2]*(.75+Math.sin(t*4)*.25));
-      if(w[8]>.001) [...elements.tearflow.children].forEach((rect,i)=>{const y=134+((t*70+i%4*22)%85);rect.setAttribute('y',fixed(y));rect.setAttribute('opacity',fixed(1-(y-134)/90));});
+      if(mechanicalTears>.001) [...elements.tearflow.children].forEach((rect,i)=>{
+        const y=142+((t*40+i%4*17)%66),x=y>153&&y<169?83:89;
+        rect.setAttribute('x',String(i<4?x-2:256-x-2));rect.setAttribute('y',fixed(y));rect.setAttribute('opacity',fixed(1-(y-142)/76));
+      });
       group.dataset.expression=expression;
     },
     mirror:false, particles:holoParticles,
-    colors:{z:'#76eec3'}, extent:[0,51,256,244], hits:[[128,140,81]], anchors:{gaze:[128,125],tear:[98,138],tears:[[98,138],[158,138]],bubble:[128,58]},
+    colors:{z:'#76eec3'}, extent:[8,22,248,252], hits:[[128,140,80]], anchors:{gaze:[128,127],tear:[102,140],tears:[[102,140],[154,140]],bubble:[128,56]},
     groupScale(mode,sx,sy){return [1+(sx-1)*.16,1+(sy-1)*.16];},
     groupTilt(mode,tilt,lean){return tilt+lean*.25;},
   };

@@ -44,8 +44,8 @@ export const FIGURE_API_OLDEST = 2;
 export const COO = 'coo';
 /** Kinds a pack's own sounds are filed under, as web/sound.js mutes them (BODY_SOUND_KINDS). */
 export const PACK_SOUND_KINDS = ['move', 'touch', 'face', 'snore', 'talk'] as const;
-/** Data about the desktop a pack may ask for: `windows`, the windows on the pet's display and their visible top edges. */
-export const PACK_NEEDS = ['windows'] as const;
+/** Desktop data a pack may request: windows and their top edges; or read-only activity and hardware load. */
+export const PACK_NEEDS = ['windows', 'system'] as const;
 /** The range of `voice.pitch`, and of `effects.reach` in 256-unit squares. */
 export const VOICE_PITCH = { min: .5, max: 2 } as const;
 export const EFFECTS_REACH_MAX = 2;

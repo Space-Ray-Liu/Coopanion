@@ -170,8 +170,10 @@ export function loadBody({ layer, pack, start, theme, bounds, onEvent, onSound, 
       move: (args, id) => post({ t: 'move', args, id }),
       /** Whether the pack asked for the windows (`setWindows`). */
       needsWindows: Array.isArray(pack.needs) && pack.needs.includes('windows'),
+      needsSystem: Array.isArray(pack.needs) && pack.needs.includes('system'),
       /** The windows (`{ ledges, windows }` in stage pixels, or null), passed on only when the pack asked for them. */
       setWindows(desk) { if (body.needsWindows) post({ t: 'windows', ledges: desk?.ledges ?? null, windows: desk?.windows ?? null }); },
+      setSystem(state) { if (body.needsSystem) post({ t: 'set', state: { system: state } }); },
       stopWalk: (id) => post({ t: 'stop-walk', id }),
       /** `type`: down, move, up, cancel, leave; `p` in stage pixels with `t` (ms). */
       pointer(type, p) { if (type !== 'leave') touches.input(performance.now()); post({ t: 'pointer', type, p }); },
