@@ -2,7 +2,7 @@
   "manifest": 2,
   "api": 2,
   "id": "holoface",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "name": {
     "zh": "薄荷全息脸",
     "zh-Hant": "薄荷全息臉",
@@ -17,8 +17,8 @@
     "ru": "Мятная голограмма"
   },
   "about": {
-    "zh": "薄荷绿色全息电子脸，近方形屏幕、扫描线、像素高光和带晶核和角点触点的镂空芯片舱。攀爬由底部磁悬浮底座和连接墙面的电流驱动。表情连续形变，眼睛、嘴和芯片模块都不会瞬间换图。可沿屏幕左右边缘攀爬，最高停在屏幕三分之二高度；长时间无操作时休眠；明显摔落后暂时缩小并出现机械泪痕。高风扇读数时微红、显示机械绿焰和使劲表情；风扇不可读时用持续 CPU/GPU 高负载近似触发。任务真实失败时用大哭，确认成功或用户夸奖时用致敬；根据上下文判断，不把每个工具结束都当成任务成功。",
-    "en": "A mint holographic face with a nearly square screen, scanlines, pixel highlights and floating chip chambers with geometric cores and corner contacts. Climbing uses a magnetic sled under the screen, coupled to the wall by animated electrical arcs. Expressions morph continuously. It climbs the screen sides up to two thirds of the height, sleeps during prolonged inactivity, and temporarily shrinks with circuit-like tears after a hard user-thrown landing. High fan readings add a red tint, green digital exhaust and a straining face; sustained CPU/GPU load is the fallback when fan data is unavailable. For actual task failure use cry; for confirmed success or explicit praise use salute. Judge the context; an individual tool finishing is not by itself task success."
+    "zh": "薄荷绿色全息电子脸，近方形屏幕、扫描线、像素高光和周围带电流粒子的悬浮实心方块。爬墙时一条电流从身体侧面中间连接到屏幕边缘。表情连续形变，眼睛、嘴和方块都不会瞬间换图。可沿屏幕左右边缘攀爬，最高停在屏幕三分之二高度；长时间无操作时休眠；明显摔落后暂时缩小并出现机械泪痕。高风扇读数时微红、显示机械绿焰和使劲表情；风扇不可读时用持续 CPU/GPU 高负载近似触发。任务真实失败时用大哭，确认成功或用户夸奖时用致敬；根据上下文判断，不把每个工具结束都当成任务成功。",
+    "en": "A mint holographic face with a nearly square screen, scanlines, pixel highlights and plain floating blocks surrounded by electrical particles. Climbing uses a single electrical current from the middle of the body's side to the screen edge. Expressions morph continuously. It climbs the screen sides up to two thirds of the height, sleeps during prolonged inactivity, and temporarily shrinks with circuit-like tears after a hard user-thrown landing. High fan readings add a red tint, green digital exhaust and a straining face; sustained CPU/GPU load is the fallback when fan data is unavailable. For actual task failure use cry; for confirmed success or explicit praise use salute. Judge the context; an individual tool finishing is not by itself task success."
   },
   "author": "Coopanion custom",
   "license": "AGPL-3.0-or-later",
@@ -156,8 +156,8 @@
         ]
       },
       "about": {
-        "zh": "两个芯片舱显示庆祝图符并轻轻浮动。",
-        "en": "Two floating chip chambers show geometric celebration symbols; use for excitement and celebration."
+        "zh": "两个实心方块在两侧轻轻浮动，周围有电流粒子。",
+        "en": "Two plain blocks float beside the face with electrical particles; use for excitement and celebration."
       },
       "seconds": 4.5
     },
@@ -200,8 +200,8 @@
         ]
       },
       "about": {
-        "zh": "晶核模块升到额角，星光闪烁。确认任务成功完成或用户夸奖时优先用这个表情。",
-        "en": "A geometric core module rises beside the upper corner with a sparkle. Prefer this after a confirmed successful task or explicit praise from the person."
+        "zh": "方块升到额角，周围电流与星光闪烁。确认任务成功完成或用户夸奖时优先用这个表情。",
+        "en": "A plain block rises beside the upper corner with electrical particles and a sparkle. Prefer this after a confirmed successful task or explicit praise from the person."
       },
       "seconds": 4.5
     },
@@ -288,8 +288,8 @@
         ]
       },
       "about": {
-        "zh": "眯眼微笑，侧边芯片模块亮起向上图符。",
-        "en": "Smiling eyes accompany an upward geometric symbol in a floating chip chamber; use for approval."
+        "zh": "眯眼微笑，侧边的实心方块轻轻浮动，周围有电流粒子。",
+        "en": "Smiling eyes accompany a plain floating block with electrical particles; use for approval."
       },
       "seconds": 4.5
     },
@@ -332,8 +332,8 @@
         ]
       },
       "about": {
-        "zh": "芯片舱悬浮在脸下方，内部晶核缓慢旋转。",
-        "en": "A chip chamber floats below the face while its geometric core rotates; use for consideration."
+        "zh": "实心方块悬浮在脸下方，周围电流粒子流动。",
+        "en": "A plain block floats below the face with moving electrical particles; use for consideration."
       },
       "seconds": 4.5
     },
@@ -376,8 +376,8 @@
         ]
       },
       "about": {
-        "zh": "眼睛眯起、嘴巴张开，两侧的晶核芯片舱轻轻浮动。",
-        "en": "Eyes squeeze into a laugh and the mouth opens while geometric core modules float beside the face."
+        "zh": "眼睛眯起、嘴巴张开，两侧的实心方块上下浮动，周围有电流粒子。",
+        "en": "Eyes squeeze into a laugh and the mouth opens while plain blocks float up and down with electrical particles."
       },
       "seconds": 4.5
     },
@@ -728,8 +728,8 @@
         ]
       },
       "about": {
-        "zh": "底部磁悬浮底座以动态电流连接左侧墙面，最高到屏幕三分之二高度，停留后返回地面。",
-        "en": "Climb the left screen edge using an electrical connection from the magnetic base, up to two thirds of the height; pause, then descend."
+        "zh": "一条电流从身体左侧中间连接屏幕左边缘，最高到屏幕三分之二高度，停留后返回地面。",
+        "en": "Climb the left screen edge using a single current from the middle of the body's left side, up to two thirds of the height; pause, then descend."
       },
       "seconds": 60
     },
@@ -772,8 +772,8 @@
         ]
       },
       "about": {
-        "zh": "底部磁悬浮底座以动态电流连接右侧墙面，最高到屏幕三分之二高度，停留后返回地面。",
-        "en": "Climb the right screen edge using an electrical connection from the magnetic base, up to two thirds of the height; pause, then descend."
+        "zh": "一条电流从身体右侧中间连接屏幕右边缘，最高到屏幕三分之二高度，停留后返回地面。",
+        "en": "Climb the right screen edge using a single current from the middle of the body's right side, up to two thirds of the height; pause, then descend."
       },
       "seconds": 60
     }

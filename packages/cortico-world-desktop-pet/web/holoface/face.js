@@ -1,8 +1,8 @@
 /** Continuous geometry for a mint hologram. Retargeting preserves velocity, including mid-expression. */
 import { holoParticles } from './particles.js';
-import { MODULES } from './modules.js';
+import { MODULES, createModuleParticles } from './modules.js';
 import { createExhaust } from './exhaust.js';
-import { createMagneticBase, WALL_PORTS } from './magnetic-base.js';
+import { createWallLink, WALL_PORTS } from './wall-link.js';
 const N = 32;
 const ellipse = (x, y, rx, ry, angle = 0) => Array.from({ length: N }, (_, i) => {
   const a = i * Math.PI * 2 / N, u = Math.cos(a) * rx, v = Math.sin(a) * ry;
@@ -88,7 +88,7 @@ const heart = 'M0 8C-27-7-16-28 0-15C16-28 27-7 0 8Z';
 let sequence = 0;
 export function createHoloFigure() {
   const motion = new FaceMotion();
-  let elements = null, exhaust = null, magneticBase = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
+  let elements = null, exhaust = null, wallLink = null, moduleParticles = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
   const id = `hf${++sequence}`;
   const make = (group) => {
     group.innerHTML = `<defs>
@@ -123,13 +123,13 @@ export function createHoloFigure() {
       <g data-part="hearts" fill="#ff977e" stroke="#ffd2b5" stroke-width="2"><path data-part="heartleft" d="${heart}"/><path data-part="heartright" d="${heart}"/></g>
       <path data-part="star" d="M59 76L63 90L77 94L63 99L59 113L54 99L40 94L54 90Z" fill="#d5fff0"/>
       <g data-part="anger" fill="#b8ffe3"><path d="M115 96V103M121 93V101M127 95V102" stroke="#b8ffe3" stroke-width="3"/></g>
-    </g><g data-part="magnetic-base"/>`;
+    </g><g data-part="wall-link"/>`;
     const get = name => group.querySelector(`[data-part="${name}"]`);
-    elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','laughmodules','hearts','heartleft','heartright','star','anger','beam','exhaust','heat','magnetic-base'].map(name=>[name,get(name)]));
+    elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','laughmodules','hearts','heartleft','heartright','star','anger','beam','exhaust','heat','wall-link'].map(name=>[name,get(name)]));
     exhaust=createExhaust(elements.exhaust,`${id}-pixelglow`);
-    magneticBase=createMagneticBase(elements['magnetic-base'],`${id}-pixelglow`);
+    wallLink=createWallLink(elements['wall-link'],`${id}-pixelglow`);
     elements.peaceleft.innerHTML=MODULES.victory; elements.peaceright.innerHTML=MODULES.victory;
-    elements.thinkcore=elements.think.querySelector('[data-module-core]');
+    moduleParticles=createModuleParticles(['peace','salute','thumb','think','laughmodules'].map(name=>elements[name]));
     for(const name of ['peace','salute','thumb','think','laughmodules']){
       elements[name].setAttribute('filter',`url(#${id}-pixelglow)`);
     }
@@ -164,7 +164,7 @@ export function createHoloFigure() {
       const bob=Math.sin(t*2.2)*1.5+Math.sin(t*13)*w[8]*1.4;
       elements.float.setAttribute('transform',`translate(${fixed(Math.sin(t*21)*w[7]*.7)} ${fixed(bob)}) rotate(${fixed(Math.sin(t*1.2)*w[5]*3)} 128 155)`);
       elements.beam.setAttribute('y',String(64+(t*23)%151));
-      const mounted=magneticBase(t,dt,frame.wall,frame.wallAnchor);
+      const mounted=wallLink(t,dt,frame.wall,frame.wallAnchor);
       ['cool','peace','salute','hearts','thumb','think','laughmodules','anger','tears'].forEach((name,i)=>{
         const isModule=['peace','salute','thumb','think','laughmodules'].includes(name);
         setWeight(name,w[i]*(isModule?1-mounted:1));
@@ -181,7 +181,7 @@ export function createHoloFigure() {
       elements.thumb.setAttribute('transform',`translate(205 ${fixed(149+20*(1-w[4])+Math.sin(t*4)*2)})`);
       elements.think.setAttribute('transform',`translate(${fixed(128+Math.sin(t*1.5)*1.5)} ${fixed(193+14*(1-w[5]))})`);
       elements.laughmodules.setAttribute('transform',`translate(0 ${fixed(14*(1-w[6])+Math.sin(t*3)*4)})`);
-      elements.thinkcore.setAttribute('transform',`rotate(${fixed(t*35%360)})`);
+      moduleParticles(t);
       elements.heartleft.setAttribute('transform',`translate(46 ${fixed(213-Math.sin(t*2)*4)}) scale(${fixed(.9+Math.sin(t*4)*.07)}) rotate(-17)`);
       elements.heartright.setAttribute('transform',`translate(204 ${fixed(88+Math.sin(t*2.1)*4)}) scale(${fixed(1+Math.sin(t*4+.5)*.08)}) rotate(15)`);
       setWeight('star',w[2]*(.75+Math.sin(t*4)*.25));
