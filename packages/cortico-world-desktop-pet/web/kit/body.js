@@ -96,7 +96,7 @@ const FACE_TONES = {
 const MOVING_MODES = new Set(['drag', 'air', 'crouch', 'land', 'walk', 'run', 'dance', 'climb']);
 /** Points on the body in logo units, for a figure that names none: where the eyes look from, where a tear starts,
  *  where z's and hearts start ([x from, x to, y]), the bubble's spot. `tears` (one start under each eye) has no default. */
-const ANCHORS = { gaze: [140, 117], tear: [166, 136], z: [196, 40], hearts: [90, 175, 34], bubble: [128, 0] };
+const ANCHORS = { gaze: [140, 117], tear: [166, 136], z: [196, 40], hearts: [90, 175, 34], bubble: [128, 0], wall: [128,128,256] };
 /** The body's box in logo units, for a figure that names none (`figure.extent`), and its hit circles (`figure.hits`). */
 const EXTENT = [20, 12, 236, 256];
 const HITS = [[128, 128, 108]];
@@ -136,6 +136,8 @@ const HITS = [[128, 128, 108]];
  * and `climb-right` words, with `height` (share of stage height), `speed` (stage pixels/s) and `rest` (seconds).
  * `opts.impact` shrinks user-thrown landings above `speed`, to `scale` for `seconds`, with `tears` seconds of damage.
  * Frames add `size`, `impact`, `effort` and `wall` (left/right/null); absent options keep the kit's usual behaviour.
+ * While attached, `wallAnchor` is the screen edge in logo coordinates, level with `anchors.wall`
+ * ([left x, right x, y]); it is null on approach or when the group is collapsed.
  */
 export function createPet(els, opts) {
   const { petG, shadowEl, fxG } = els;
@@ -754,6 +756,12 @@ export function createPet(els, opts) {
     const ds = drawScale(), facing = visualFacing(), kx = ds * facing * sx, ky = ds * sy, lean = pet.lean * facing;
     const rot = custom?.groupTilt ? custom.groupTilt(pet.mode, pet.tilt, lean) : pet.tilt + lean;
     pet.xf = { AX, AY, ax, ay, kx, ky, rot };
+    let wallAnchor=null;
+    if(pet.wall && pet.wallPhase!=='approach' && Math.abs(kx)>1e-6 && Math.abs(ky)>1e-6){
+      const port=toStage(A.wall[pet.wall==='left'?0:1],A.wall[2]);
+      const dx=(pet.wall==='left'?0:W)-AX,dy=port.y-AY,r=rot*Math.PI/180;
+      wallAnchor=[ax+(dx*Math.cos(r)+dy*Math.sin(r))/kx,ay+(-dx*Math.sin(r)+dy*Math.cos(r))/ky];
+    }
     petG.setAttribute('transform', `translate(${f(AX)} ${f(AY)}) rotate(${f(rot)}) scale(${kx.toFixed(4)} ${ky.toFixed(4)}) translate(${-ax} ${-ay})`);
 
     const legs = pet.feet.map((ft, i) => [HIPS[i][0], HIPS[i][1] + pet.low, ft[0], ft[1]]);
@@ -767,7 +775,7 @@ export function createPet(els, opts) {
     custom.draw(petG, face, {
       look: pet.look, legs, low: pet.low, t: T, blink, eyeClose, acc: skin, swing: pet.swing,
       face: fname, mode: pet.mode, modeT: pet.modeT, talk: pet.talkK, status: pet.status, drowse: pet.drowse, sit: pet.sitK, facing, tilt: pet.tilt, lean, groupRot: rot, gesture,
-      size: pet.size, impact: Math.max(0, (pet.damageUntil - T) / (opts.impact?.tears ?? 1)), effort: pet.effort, wall: pet.wall,
+      size: pet.size, impact: Math.max(0, (pet.damageUntil - T) / (opts.impact?.tears ?? 1)), effort: pet.effort, wall: pet.wall, wallAnchor,
     });
 
     const footY = drag ? pet.dy + 220 * ds * 1.09 : pet.fy;

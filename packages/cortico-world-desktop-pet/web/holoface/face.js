@@ -1,7 +1,8 @@
 /** Continuous geometry for a mint hologram. Retargeting preserves velocity, including mid-expression. */
 import { holoParticles } from './particles.js';
-import { HANDS } from './hands.js';
+import { MODULES } from './modules.js';
 import { createExhaust } from './exhaust.js';
+import { createMagneticBase, WALL_PORTS } from './magnetic-base.js';
 const N = 32;
 const ellipse = (x, y, rx, ry, angle = 0) => Array.from({ length: N }, (_, i) => {
   const a = i * Math.PI * 2 / N, u = Math.cos(a) * rx, v = Math.sin(a) * ry;
@@ -87,7 +88,7 @@ const heart = 'M0 8C-27-7-16-28 0-15C16-28 27-7 0 8Z';
 let sequence = 0;
 export function createHoloFigure() {
   const motion = new FaceMotion();
-  let elements = null, exhaust = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
+  let elements = null, exhaust = null, magneticBase = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
   const id = `hf${++sequence}`;
   const make = (group) => {
     group.innerHTML = `<defs>
@@ -95,7 +96,6 @@ export function createHoloFigure() {
       <filter id="${id}-pixelglow" x="-30%" y="-40%" width="160%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="1.3" flood-color="#74f9c8" flood-opacity=".7"/></filter>
       <pattern id="${id}-scan" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0 1.5H3" stroke="#beffe9" stroke-width=".55" opacity=".36"/></pattern>
       <pattern id="${id}-pixels" width="3.8" height="3.8" patternUnits="userSpaceOnUse"><rect width="2.6" height="2.6" rx=".4" fill="#c4fff0"/></pattern>
-      <pattern id="${id}-hands" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#80e8c5" fill-opacity=".8"/><path d="M0 1H3" stroke="#d4ffed" stroke-width=".6" opacity=".5"/></pattern>
       <linearGradient id="${id}-glass" x2="0" y2="1"><stop stop-color="#77eac2" stop-opacity=".46"/><stop offset="1" stop-color="#42caa1" stop-opacity=".28"/></linearGradient>
       <clipPath id="${id}-lenses"><path d="M72 106H122L119 139H70ZM134 106H184L186 139H137Z"/></clipPath>
       <clipPath id="${id}-clip"><path d="${head}"/></clipPath>
@@ -116,21 +116,21 @@ export function createHoloFigure() {
       <g data-part="cool"><path d="M72 106H122L119 139H70ZM134 106H184L186 139H137Z" fill="#258f74" stroke="#adffe3" stroke-width="4"/><path d="M121 115H137M80 111L74 132M91 111L84 133M143 111L139 131M155 111L148 133" fill="none" stroke="#bcffeb" stroke-width="4"/><g clip-path="url(#${id}-lenses)"><path data-part="shine" d="M70 98L50 146H62L82 98Z" fill="#dbfff3" opacity=".45"/></g></g>
       <g data-part="tears" fill="#a5ffe2" stroke="#d0ffed" stroke-width="1"><path data-part="teartracks" d="M89 141V153H83V169H89V202H95M167 141V153H173V169H167V202H161" fill="none" stroke-width="1.7" opacity=".65"/><path d="M80 156H91M80 162H91M165 156H176M165 162H176M85 190H93M163 190H171" fill="none" opacity=".5"/><g data-part="tearflow"/></g>
       <g data-part="peace" fill="#81e8c8" stroke="#c0ffed" stroke-width="3.5" stroke-linejoin="round"><g data-part="peaceleft"/><g data-part="peaceright"/></g>
-      <g data-part="salute" fill="#82e8c6" stroke="#c7fff0" stroke-width="3" stroke-linejoin="round">${HANDS.salute}</g>
-      <g data-part="thumb" fill="#83e9c8" stroke="#c3ffeb" stroke-width="3" stroke-linejoin="round">${HANDS.thumb}</g>
-      <g data-part="think" fill="#8deace" stroke="#c4ffed" stroke-width="3" stroke-linejoin="round">${HANDS.think}</g>
-      <g data-part="fists" fill="#8ae8c8" stroke="#c6ffec" stroke-width="3" stroke-linejoin="round"><g data-part="fistleft" transform="translate(54 189)">${HANDS.fist}</g><g data-part="fistright" transform="translate(202 189) scale(-1 1)">${HANDS.fist}</g></g>
-      <g data-part="wallmodules" fill="url(#${id}-hands)" stroke="#c6ffec" stroke-width="3"><g>${HANDS.fist}</g><g>${HANDS.fist}</g></g>
+      <g data-part="salute">${MODULES.salute}</g>
+      <g data-part="thumb">${MODULES.approval}</g>
+      <g data-part="think">${MODULES.thinking}</g>
+      <g data-part="laughmodules"><g data-part="laughleft" transform="translate(54 189)">${MODULES.laughter}</g><g data-part="laughright" transform="translate(202 189) scale(-1 1)">${MODULES.laughter}</g></g>
       <g data-part="hearts" fill="#ff977e" stroke="#ffd2b5" stroke-width="2"><path data-part="heartleft" d="${heart}"/><path data-part="heartright" d="${heart}"/></g>
       <path data-part="star" d="M59 76L63 90L77 94L63 99L59 113L54 99L40 94L54 90Z" fill="#d5fff0"/>
       <g data-part="anger" fill="#b8ffe3"><path d="M115 96V103M121 93V101M127 95V102" stroke="#b8ffe3" stroke-width="3"/></g>
-    </g>`;
+    </g><g data-part="magnetic-base"/>`;
     const get = name => group.querySelector(`[data-part="${name}"]`);
-    elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','fists','hearts','heartleft','heartright','star','anger','beam','exhaust','heat','wallmodules'].map(name=>[name,get(name)]));
+    elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','laughmodules','hearts','heartleft','heartright','star','anger','beam','exhaust','heat','magnetic-base'].map(name=>[name,get(name)]));
     exhaust=createExhaust(elements.exhaust,`${id}-pixelglow`);
-    elements.peaceleft.innerHTML=HANDS.peace; elements.peaceright.innerHTML=HANDS.peace;
-    for(const name of ['peace','salute','thumb','think','fists']){
-      elements[name].setAttribute('fill',`url(#${id}-hands)`);
+    magneticBase=createMagneticBase(elements['magnetic-base'],`${id}-pixelglow`);
+    elements.peaceleft.innerHTML=MODULES.victory; elements.peaceright.innerHTML=MODULES.victory;
+    elements.thinkcore=elements.think.querySelector('[data-module-core]');
+    for(const name of ['peace','salute','thumb','think','laughmodules']){
       elements[name].setAttribute('filter',`url(#${id}-pixelglow)`);
     }
     elements.tearflow.innerHTML=Array.from({length:8},()=>'<rect width="5" height="8"/>').join('');
@@ -164,7 +164,11 @@ export function createHoloFigure() {
       const bob=Math.sin(t*2.2)*1.5+Math.sin(t*13)*w[8]*1.4;
       elements.float.setAttribute('transform',`translate(${fixed(Math.sin(t*21)*w[7]*.7)} ${fixed(bob)}) rotate(${fixed(Math.sin(t*1.2)*w[5]*3)} 128 155)`);
       elements.beam.setAttribute('y',String(64+(t*23)%151));
-      ['cool','peace','salute','hearts','thumb','think','fists','anger','tears'].forEach((name,i)=>setWeight(name,w[i]));
+      const mounted=magneticBase(t,dt,frame.wall,frame.wallAnchor);
+      ['cool','peace','salute','hearts','thumb','think','laughmodules','anger','tears'].forEach((name,i)=>{
+        const isModule=['peace','salute','thumb','think','laughmodules'].includes(name);
+        setWeight(name,w[i]*(isModule?1-mounted:1));
+      });
       const mechanicalTears=Math.max(w[8],frame.impact??0);
       setWeight('tears',mechanicalTears);
       elements.heat.setAttribute('opacity',String((frame.effort??0)*.32));
@@ -176,9 +180,8 @@ export function createHoloFigure() {
       elements.salute.setAttribute('transform',`translate(57 ${fixed(112+30*(1-w[2])+Math.sin(t*3)*3)}) rotate(-12)`);
       elements.thumb.setAttribute('transform',`translate(205 ${fixed(149+20*(1-w[4])+Math.sin(t*4)*2)})`);
       elements.think.setAttribute('transform',`translate(${fixed(128+Math.sin(t*1.5)*1.5)} ${fixed(193+14*(1-w[5]))})`);
-      elements.fists.setAttribute('transform',`translate(0 ${fixed(14*(1-w[6])+Math.sin(t*3)*4)})`);
-      setWeight('wallmodules',frame.wall?1:0);
-      [...elements.wallmodules.children].forEach((module,i)=>module.setAttribute('transform',`translate(${frame.wall==='left'?21:235} ${fixed(113+i*64+Math.sin(t*5+i*Math.PI)*8)})`));
+      elements.laughmodules.setAttribute('transform',`translate(0 ${fixed(14*(1-w[6])+Math.sin(t*3)*4)})`);
+      elements.thinkcore.setAttribute('transform',`rotate(${fixed(t*35%360)})`);
       elements.heartleft.setAttribute('transform',`translate(46 ${fixed(213-Math.sin(t*2)*4)}) scale(${fixed(.9+Math.sin(t*4)*.07)}) rotate(-17)`);
       elements.heartright.setAttribute('transform',`translate(204 ${fixed(88+Math.sin(t*2.1)*4)}) scale(${fixed(1+Math.sin(t*4+.5)*.08)}) rotate(15)`);
       setWeight('star',w[2]*(.75+Math.sin(t*4)*.25));
@@ -189,7 +192,7 @@ export function createHoloFigure() {
       group.dataset.expression=expression;
     },
     mirror:false, particles:holoParticles,
-    colors:{z:'#76eec3'}, extent:[8,22,248,252], hits:[[128,140,80]], anchors:{gaze:[128,127],tear:[102,140],tears:[[102,140],[154,140]],bubble:[128,56]},
+    colors:{z:'#76eec3'}, extent:[8,22,248,252], hits:[[128,140,80]], anchors:{gaze:[128,127],tear:[102,140],tears:[[102,140],[154,140]],bubble:[128,56],wall:[WALL_PORTS.left[0],WALL_PORTS.right[0],WALL_PORTS.left[1]]},
     groupScale(mode,sx,sy){return [1+(sx-1)*.16,1+(sy-1)*.16];},
     groupTilt(mode,tilt,lean){return tilt+lean*.25;},
   };

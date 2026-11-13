@@ -143,6 +143,24 @@ describe('the words the model can use', () => {
     expect(fxG.innerHTML).toContain('<circle class="p-dust"');
     expect(fxG.innerHTML).not.toContain('data-holo-particle');
   });
+
+  it.each(['left', 'right'])('keeps the %s wall connection on the stage edge through scaling and tilt', (side) => {
+    const bounds = { W: 1200, H: 600, floorY: 570, S: .42 };
+    const pet = barePet(undefined, { bounds: () => bounds, climb: { height: 2 / 3, speed: 50, rest: 6 } });
+    let frame;
+    const anchors = { wall: [84, 172, 227] };
+    pet.setFigure({ anchors, draw: (_group, _face, next) => { frame = next; } });
+    pet.act(`climb-${side}`); run(pet, .1);
+    expect(frame.wallAnchor).toBeNull();
+    run(pet, 10);
+    for (const [size, tilt] of [[1, -7], [.75, 9]]) {
+      pet.pet.size = size; pet.pet.tilt = tilt; pet.render();
+      expect(frame.wallAnchor).not.toBeNull();
+      const edge = pet.toStage(...frame.wallAnchor), port = pet.toStage(anchors.wall[side === 'left' ? 0 : 1], anchors.wall[2]);
+      expect(edge.x).toBeCloseTo(side === 'left' ? 0 : bounds.W, 5);
+      expect(edge.y).toBeCloseTo(port.y, 5);
+    }
+  });
 });
 
 /** Runs `fn(made)` over a Web Audio that counts the tones and clips started (`made.rates`: the clips' playback rates). */
