@@ -29,8 +29,8 @@ describe('autonomous hologram relocation',()=>{
   const signal=new HoloSignal({random:seeded(7)}),jumps=[];
   for(let i=0;i<210*60;i++){
    const t=i/60,visual=signal.advance(t,0,'idle');
-   expect(visual).toMatchObject({offset:0,amount:0});
-   expect(visual.opacity).toBe(signal.hidden?0:1);
+   if(visual.phase==='steady')expect(visual).toMatchObject({offset:0,amount:0,opacity:1,scaleX:1,scaleY:1,electric:0});
+   if(signal.hidden)expect(visual.opacity).toBe(0);
    const jump=signal.takeRelocation();
    if(jump){expect(signal.hidden).toBe(true);jumps.push({t,...jump});}
    signal.advance(t,0,'idle');expect(signal.takeRelocation()).toBeNull();
@@ -39,7 +39,7 @@ describe('autonomous hologram relocation',()=>{
   const intervals=jumps.map((j,i)=>j.t-(jumps[i-1]?.t??0));
   for(const seconds of intervals){
    expect(seconds).toBeGreaterThanOrEqual(HOLO_SIGNAL.relocationInterval[0]);
-   expect(seconds).toBeLessThan(HOLO_SIGNAL.relocationInterval[1]+1);
+   expect(seconds).toBeLessThan(HOLO_SIGNAL.relocationInterval[1]+3);
   }
   expect(new Set(intervals.map(Math.floor)).size).toBeGreaterThan(1);
  });
@@ -69,10 +69,35 @@ describe('autonomous hologram relocation',()=>{
  it('preserves the invisible interval after relocation changes the mode to climbing',()=>{
   const signal=new HoloSignal({random:()=>0}),delay=HOLO_SIGNAL.relocationInterval[0];
   signal.advance(0,0,'idle');signal.advance(delay,0,'idle');
-  signal.advance(delay+.18,0,'idle');expect(signal.takeRelocation()?.edge).toBe('left');
-  signal.advance(delay+.18,0,'climb');expect(signal.hidden).toBe(true);
-  signal.advance(delay+.3,0,'climb');expect(signal.hidden).toBe(false);
+  const {at,seconds,enter}=signal.relocation,t=at+seconds*.6;
+  signal.advance(t,0,'idle');expect(signal.takeRelocation()?.edge).toBe('left');
+  signal.advance(t,0,'climb');expect(signal.hidden).toBe(true);
+  const recovering=signal.advance(at+seconds+enter*.5,0,'climb');
+  expect(signal.hidden).toBe(false);expect(recovering.phase).toBe('in');expect(recovering.electric).toBeGreaterThan(0);
+  const steady=signal.advance(at+seconds+enter+.01,0,'climb');
+  expect(steady).toMatchObject({phase:'steady',scaleY:1,opacity:1,electric:0});
   expect(signal.takeRelocation()).toBeNull();
+ });
+ it('contracts into current and expands at the new position, with interference on departure and arrival',()=>{
+  const signal=new HoloSignal({random:seeded(89)}),phases={out:[],in:[]};
+  for(let i=0;i<110*120;i++){
+   const t=i/120,v=signal.advance(t,0,'idle');
+   expect(v.scaleX).toBeGreaterThan(0);expect(v.scaleY).toBeGreaterThan(0);
+   expect(Math.abs(v.offset)).toBeLessThanOrEqual(HOLO_SIGNAL.jitter);
+   if(phases[v.phase])phases[v.phase].push({...v,t});
+   if(signal.takeRelocation())expect(signal.hidden).toBe(true);
+   expect(signal.advance(t,0,'idle')).toEqual(v);
+  }
+  for(const samples of Object.values(phases)){
+   expect(samples.some(v=>v.scaleY<.03&&v.electric>.8)).toBe(true);
+   expect(samples.some(v=>v.scaleX<.2)).toBe(true);
+   expect(samples.some(v=>v.opacity<.75)).toBe(true);
+   expect(samples.some(v=>Math.abs(v.offset)>.5)).toBe(true);
+   expect(new Set(samples.map(v=>v.offset)).size).toBeGreaterThan(3);
+   expect(new Set(samples.map(v=>v.row)).size).toBeGreaterThan(1);
+  }
+  expect(phases.out[0].scaleY).toBeCloseTo(1);
+  expect(phases.in[0].scaleY).toBeLessThan(.03);
  });
  it('keeps impact interference independent of the idle timer',()=>{
   const signal=new HoloSignal({random:()=>0}),delay=HOLO_SIGNAL.relocationInterval[0];

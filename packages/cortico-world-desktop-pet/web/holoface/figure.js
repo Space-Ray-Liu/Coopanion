@@ -10,6 +10,7 @@ export function createHoloBody(base, {kit,host,random=Math.random}) {
   projection.dataset.holoProjection='';projection.style.cssText='position:absolute;inset:0';
   host.root.appendChild(projection);
   const body=kit.createBody({...host,root:projection},{figure,words,...HOLO_BEHAVIOUR});
+  const [shadow,,effects]=projection.querySelector('svg').children;
   const interaction={dialogOpen:false,listening:false,thinking:false,status:null};
   const originalSet=body.set, originalStep=body.step;
   body.set=state=>{
@@ -23,6 +24,9 @@ export function createHoloBody(base, {kit,host,random=Math.random}) {
     const jump=figure.signal.takeRelocation();
     if(jump)body.relocate(jump.edge,jump.position);
     projection.style.opacity=figure.signal.hidden?'0':'1';
+    const visibility=figure.signal.visual.scaleY;
+    shadow.setAttribute('opacity',String(Number(shadow.getAttribute('opacity'))*visibility));
+    effects.setAttribute('opacity',String(visibility));
   };
   const originalLayout=body.layout,originalDispose=body.dispose;
   body.layout=()=>{

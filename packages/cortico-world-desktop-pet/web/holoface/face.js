@@ -4,6 +4,7 @@ import { MODULES, createModuleMotion } from './modules.js';
 import { createExhaust } from './exhaust.js';
 import { createWallLink, WALL_PORTS } from './wall-link.js';
 import { HoloSignal, createProjectionSignal } from './signal.js';
+import { createTeleportCurrent } from './teleport.js';
 const N = 32;
 const ellipse = (x, y, rx, ry, angle = 0) => Array.from({ length: N }, (_, i) => {
   const a = i * Math.PI * 2 / N, u = Math.cos(a) * rx, v = Math.sin(a) * ry;
@@ -90,7 +91,7 @@ let sequence = 0;
 export function createHoloFigure({random=Math.random,autoRelocate=false}={}) {
   const motion = new FaceMotion();
   const signal=new HoloSignal({random,autoRelocate});
-  let elements = null, exhaust = null, wallLink = null, moduleMotion = null, drawSignal = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
+  let elements = null, exhaust = null, wallLink = null, moduleMotion = null, drawSignal = null, teleportCurrent = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
   const id = `hf${++sequence}`;
   const make = (group) => {
     group.innerHTML = `<defs>
@@ -107,7 +108,7 @@ export function createHoloFigure({random=Math.random,autoRelocate=false}={}) {
         <g data-part="signal-gaps" fill="black" opacity="0"><rect x="-64" width="384"/><rect x="-64" width="384"/></g>
       </mask>
     </defs>
-    <g data-part="projection"><g data-part="float" mask="url(#${id}-signal)">
+    <g data-part="projection"><g data-part="signal-screen"><g data-part="float" mask="url(#${id}-signal)">
       <g data-part="exhaust"/>
       <path d="${head}" stroke="#35e2af" stroke-width="16" fill="none" opacity=".4" filter="url(#${id}-glow)"/>
       <path data-part="shell" d="${head}" fill="url(#${id}-glass)" stroke="#7afcce" stroke-width="2.4" stroke-linejoin="round"/>
@@ -130,10 +131,11 @@ export function createHoloFigure({random=Math.random,autoRelocate=false}={}) {
       <path data-part="star" d="M59 76L63 90L77 94L63 99L59 113L54 99L40 94L54 90Z" fill="#d5fff0"/>
       <g data-part="anger" fill="#b8ffe3"><path d="M115 96V103M121 93V101M127 95V102" stroke="#b8ffe3" stroke-width="3"/></g>
       <g clip-path="url(#${id}-clip)"><g data-part="signal-noise" fill="#d0ffec" opacity="0"><rect x="66" width="59" height="1.5"/><rect x="139" y="31" width="48" height="1"/></g></g>
-    </g><g data-part="wall-link"/></g>`;
+    </g></g><g data-part="wall-link"/><g data-part="teleport-current"/></g>`;
     const get = name => group.querySelector(`[data-part="${name}"]`);
     elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','laughmodules','hearts','heartleft','heartright','star','anger','beam','exhaust','heat','wall-link'].map(name=>[name,get(name)]));
-    drawSignal=createProjectionSignal(get('projection'),get('signal-gaps'),get('signal-noise'),signal);
+    drawSignal=createProjectionSignal(get('projection'),get('signal-screen'),get('signal-gaps'),get('signal-noise'),signal);
+    teleportCurrent=createTeleportCurrent(get('teleport-current'),`${id}-pixelglow`);
     exhaust=createExhaust(elements.exhaust,`${id}-pixelglow`);
     wallLink=createWallLink(elements['wall-link'],`${id}-pixelglow`);
     elements.peaceleft.innerHTML=MODULES.victory; elements.peaceright.innerHTML=MODULES.victory;
@@ -153,6 +155,7 @@ export function createHoloFigure({random=Math.random,autoRelocate=false}={}) {
       const dt = Math.max(0,Math.min(.08,frame.t-previousT)); previousT=frame.t; t=frame.t;
       const impact=frame.impact??0;
       drawSignal(t,impact,frame.mode);
+      teleportCurrent(t,signal.visual);
       let expression = requested && t<requestedUntil ? requested : (POSES[frame.face] ? frame.face : aliases[frame.face] ?? 'neutral');
       if (!requested && frame.face==='neutral' && frame.status) expression='thinking';
       if (requested && t>=requestedUntil) requested=null;
@@ -176,6 +179,7 @@ export function createHoloFigure({random=Math.random,autoRelocate=false}={}) {
       elements.beam.setAttribute('y',String(64+(t*23)%151));
       const wallAnchor=frame.wallAnchor?[frame.wallAnchor[0]-signal.visual.offset,frame.wallAnchor[1]]:null;
       const mounted=wallLink(t,dt,frame.wall,wallAnchor);
+      elements['wall-link'].setAttribute('opacity',String(mounted*signal.visual.scaleY));
       ['cool','peace','salute','hearts','thumb','think','laughmodules','anger','tears'].forEach((name,i)=>{
         const isModule=['peace','salute','thumb','think','laughmodules'].includes(name);
         setWeight(name,w[i]*(isModule?1-mounted:1));
@@ -205,6 +209,6 @@ export function createHoloFigure({random=Math.random,autoRelocate=false}={}) {
     mirror:false, particles:holoParticles,
     colors:{z:'#76eec3'}, extent:[8,22,248,252], hits:[[128,140,80]], anchors:{gaze:[128,127],tear:[102,140],tears:[[102,140],[154,140]],bubble:[128,56],wall:[WALL_PORTS.left[0],WALL_PORTS.right[0],WALL_PORTS.left[1]]},
     groupScale(mode,sx,sy){return [1+(sx-1)*.16,1+(sy-1)*.16];},
-    groupTilt(mode,tilt,lean,{impact=0}={}){return impact>0?0:tilt+lean*.25;},
+    groupTilt(mode,tilt,lean,{impact=0}={}){return impact>0||signal.relocation?0:tilt+lean*.25;},
   };
 }

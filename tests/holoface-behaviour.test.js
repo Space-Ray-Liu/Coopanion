@@ -90,14 +90,20 @@ describe('autonomous hologram relocation',()=>{
  it.each(['left','right','bottom'])('disappears before moving to the %s edge, then restores its hit area',edge=>{
   const r=rig(undefined,chooseEdge(edge)),{body,root,bounds}=r;
   const full=body.layout().hit[0].r;advance(body,HOLO_SIGNAL.relocationInterval[0]-.1);
-  let hidden=0,moves=0,previousX=body.layout().x;
+  let hidden=0,moves=0,currentBefore=0,currentAfter=0,previousX=body.layout().x;
   for(let i=0;i<180;i++){
    body.step(1/60);const l=body.layout(),invisible=root.querySelector('[data-holo-projection]').style.opacity==='0';
    if(invisible){hidden++;expect(l.hit).toEqual([]);}
    if(Math.abs(l.x-previousX)>1){moves++;expect(invisible).toBe(true);}
+   if(!invisible&&Number(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity'))>.1){
+    if(moves)currentAfter++;else currentBefore++;
+   }
    previousX=l.x;
   }
   expect(hidden).toBeGreaterThan(3);expect(moves).toBe(1);
+  expect(currentBefore).toBeGreaterThan(5);expect(currentAfter).toBeGreaterThan(5);
+  expect(root.querySelector('[data-part="signal-screen"]').getAttribute('transform')).toContain('scale(1.0000 1.0000)');
+  expect(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity')).toBe('0');
   const l=body.layout();expect(l.hit).toHaveLength(1);expect(l.hit[0].r/full).toBeCloseTo(1,2);
   expect(r.events.some(e=>e.event==='touch'&&e.kind==='crash')).toBe(false);
   expect(root.querySelector('[data-holo-projection]').style.opacity).toBe('1');
@@ -111,13 +117,16 @@ describe('autonomous hologram relocation',()=>{
   const hit=l.hit[0];body.pointer('down',{x:hit.x,y:hit.y,t:1000});body.pointer('move',{x:hit.x+16,y:hit.y-25,t:1100});body.step(1/60);
   expect(body.layout().mode).toBe('drag');body.dispose();
  });
- it('cancels a pending disappearance when picked up again',()=>{
-  const r=rig(undefined,chooseEdge('left')),{body,root,bounds}=r;advance(body,HOLO_SIGNAL.relocationInterval[0]+.05);
+ it('cancels an electrical collapse and restores its full shape when picked up',()=>{
+  const r=rig(undefined,chooseEdge('left')),{body,root,bounds}=r;advance(body,HOLO_SIGNAL.relocationInterval[0]+.35);
+  expect(Number(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity'))).toBeGreaterThan(0);
   const hit=body.layout().hit[0];body.pointer('down',{x:hit.x,y:hit.y,t:500});
   body.pointer('move',{x:hit.x+16,y:hit.y-35,t:600});
   for(let i=0;i<90;i++){
    body.step(1/30);expect(body.layout().mode).toBe('drag');
    expect(root.querySelector('[data-holo-projection]').style.opacity).toBe('1');
+   expect(root.querySelector('[data-part="signal-screen"]').getAttribute('transform')).toContain('scale(1.0000 1.0000)');
+   expect(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity')).toBe('0');
    expect(body.layout().x).toBeGreaterThan(bounds.W*.3);
   }
   body.dispose();expect(root.querySelector('[data-holo-projection]')).toBeNull();
