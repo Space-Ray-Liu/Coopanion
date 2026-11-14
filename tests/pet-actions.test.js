@@ -337,6 +337,18 @@ describe('a body that stands anywhere on the stage (ground: free)', () => {
 });
 
 describe('picking the body up', () => {
+  it('checks avoidance when upward velocity becomes a landing within one frame', () => {
+    const sounds = [], pet = barePet(undefined, {
+      sfx: { play: name => sounds.push(name) },
+      fall: { before: .05, avoid: () => true, active: () => true },
+    });
+    Object.assign(pet.pet, { mode: 'air', userFall: true, airKind: 'throw', fy: pet.pet.gy - .01, vy: -10 });
+    pet.step(1 / 60);
+    expect(pet.pet.fallHeld).toBe(true);expect(sounds).not.toContain('land');
+    expect(pet.pet.fy).toBeLessThan(pet.pet.gy);
+    expect(pet.relocate('bottom', .5)).toBe(true);
+    expect(pet.pet.mode).toBe('idle');expect(pet.pet.fy).toBe(pet.pet.gy);
+  });
   it('resumes a suspended fall when the pack cancels its avoidance, without another attempt', () => {
     let active = true;
     const landed = [], pet = barePet(undefined, {

@@ -154,6 +154,23 @@ describe('autonomous hologram relocation',()=>{
 
 describe('hologram fall evasion',()=>{
  it.each([
+  [15,HOLO_SIGNAL.fallChance-.001,true],[60,HOLO_SIGNAL.fallChance-.001,true],[120,HOLO_SIGNAL.fallChance-.001,true],
+  [15,HOLO_SIGNAL.fallChance,false],[60,HOLO_SIGNAL.fallChance,false],[120,HOLO_SIGNAL.fallChance,false],
+ ])('at %s fps, an edge release with roll %s avoids its first-frame landing: %s',(fps,roll,escaped)=>{
+  const rolls=[.9,roll,.05],{body,root,sounds,bounds}=rig(undefined,()=>rolls.length?rolls.shift():(escaped ? .9 : 0));
+  const full=body.layout().hit[0].r,hit=body.layout().hit[0];
+  body.pointer('down',{x:hit.x,y:hit.y,t:0});body.pointer('move',{x:450,y:120,t:100});advance(body,.3);
+  body.drop({x:450,y:bounds.H+20});
+  let hidden=false;
+  for(let i=0;i<fps*2;i++){
+   body.step(1/fps);hidden||=root.querySelector('[data-holo-projection]').style.opacity==='0';
+   expect(body.layout().box.y+body.layout().box.h).toBeLessThanOrEqual(bounds.floorY+1);
+  }
+  expect(hidden).toBe(escaped);expect(sounds.includes('land')).toBe(!escaped);
+  expect(body.layout().mode).toBe(escaped?'climb':'idle');
+  expect(body.layout().hit[0].r/full).toBeCloseTo(1,2);body.dispose();
+ });
+ it.each([
   [15,'left',HOLO_SIGNAL.fallChance-.001,true],[60,'right',HOLO_SIGNAL.fallChance-.001,true],[120,'bottom',HOLO_SIGNAL.fallChance-.001,true],
   [15,'left',HOLO_SIGNAL.fallChance,false],[60,'right',HOLO_SIGNAL.fallChance,false],[120,'bottom',HOLO_SIGNAL.fallChance,false],
  ])('at %s fps towards %s, roll %s avoids landing: %s',(fps,edge,roll,escaped)=>{

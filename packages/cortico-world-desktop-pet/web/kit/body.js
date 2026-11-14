@@ -540,6 +540,7 @@ export function createPet(els, opts) {
         break;
       }
       case 'air': {
+        const previousY = pet.fy;
         if (pet.fallHeld) {
           if (opts.fall.active()) break;
           pet.fallHeld = false;
@@ -548,8 +549,7 @@ export function createPet(els, opts) {
           const distance = Math.max(0, pet.gy - pet.fy);
           const seconds = (Math.sqrt(pet.vy ** 2 + 4600 * distance) - pet.vy) / 2300;
           if ((distance > 0 || pet.vy > 0) && seconds <= opts.fall.before + dt) {
-            pet.fallTried = true;
-            if (opts.fall.avoid(T)) { pet.fallHeld = true; break; }
+            if (avoidLanding()) break;
           }
         }
         pet.vy += 2300 * dt;
@@ -568,7 +568,10 @@ export function createPet(els, opts) {
         sqT = -Math.min(.12, Math.abs(pet.vy) / 6000);
         tiltT = clamp(pet.vx * .025, -30, 30);
         tk = 70; tc = 8;
-        if (pet.fy >= pet.gy && pet.vy > 0) land();
+        if (pet.fy >= pet.gy && pet.vy > 0) {
+          if (avoidLanding()) { pet.fy = Math.min(previousY, pet.gy); break; }
+          land();
+        }
         break;
       }
       case 'land': {
@@ -742,6 +745,11 @@ export function createPet(els, opts) {
     pet._fc = fc; pet._fname = fname;
   }
 
+  function avoidLanding() {
+    if (!opts.fall || !pet.userFall || pet.fallTried) return false;
+    pet.fallTried = true;
+    return (pet.fallHeld = opts.fall.avoid(T));
+  }
   function land() {
     const impact = pet.vy, kind = pet.airKind;
     pet.fy = pet.gy; pet.vy = 0; pet.vx = 0; pet.gvy = 0;
