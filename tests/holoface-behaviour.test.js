@@ -6,18 +6,28 @@ import {HOLO_SIGNAL} from '../packages/cortico-world-desktop-pet/web/holoface/si
 import * as kit from '../packages/cortico-world-desktop-pet/web/kit/body.js';
 const windows=[];
 afterEach(()=>{for(const win of windows.splice(0))win.close();});
-function rig(bounds={W:900,H:600,floorY:570,S:.6},random=()=>.9){
+function rig(bounds={W:900,H:600,floorY:570,S:.6},random=()=>.9,start={}){
  const dom=new JSDOM('<!doctype html><body></body>');windows.push(dom.window);
- const events=[],root=dom.window.document.body;
- const body=createHoloBody(new URL('http://localhost/'),{kit,random,host:{root,bounds:()=>bounds,start:{enter:false,x:450},emit:(event,detail)=>events.push({event,...detail}),sound(){}}});
+ const events=[],sounds=[],root=dom.window.document.body;
+ const body=createHoloBody(new URL('http://localhost/'),{kit,random,host:{root,bounds:()=>bounds,start:{enter:false,x:450,...start},emit:(event,detail)=>events.push({event,...detail}),sound:name=>sounds.push(name)}});
  body.set({roam:'off'});body.step(1/60);
- return {body,root,events,bounds};
+ return {body,root,events,sounds,bounds};
 }
 const advance=(body,seconds)=>{for(let i=0;i<Math.ceil(seconds*30);i++)body.step(1/30);};
 function heat(env,seconds,sample){for(let i=0;i<seconds*30;i++){if(i%30===0)env.sample(sample);env.step(1/30);}return env.effort;}
 function chooseEdge(edge){
  const first=[0,{left:.05,right:.5,bottom:.95}[edge]];let seed=181;
  return ()=>first.length?first.shift():((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+}
+function throwDown(body){
+ const hit=body.layout().hit[0];
+ body.pointer('down',{x:hit.x,y:hit.y,t:0});body.pointer('move',{x:450,y:120,t:100});advance(body,.5);
+ body.pointer('move',{x:450,y:400,t:200});body.step(1/60);body.pointer('up',{x:450,y:400,t:210});
+}
+function dropFromHeight(body,t=0){
+ const hit=body.layout().hit[0];
+ body.pointer('down',{x:hit.x,y:hit.y,t});body.pointer('move',{x:450,y:120,t:t+100});advance(body,.3);
+ body.drop({x:450,y:120});
 }
 describe('hologram activity and effort',()=>{
  it('sleeps through prolonged inactivity and wakes when system input resumes',()=>{
@@ -139,6 +149,64 @@ describe('autonomous hologram relocation',()=>{
   const l=body.layout();expect(l.x).toBeGreaterThan(bounds.W*.8);expect(l.x).toBeLessThan(bounds.W);
   expect(l.box.y).toBeGreaterThanOrEqual(bounds.H*(1-HOLO_BEHAVIOUR.climb.height)-2);
   expect(l.hit[0].y).toBeLessThan(bounds.H);body.dispose();
+ });
+});
+
+describe('hologram fall evasion',()=>{
+ it.each([
+  [15,'left',HOLO_SIGNAL.fallChance-.001,true],[60,'right',HOLO_SIGNAL.fallChance-.001,true],[120,'bottom',HOLO_SIGNAL.fallChance-.001,true],
+  [15,'left',HOLO_SIGNAL.fallChance,false],[60,'right',HOLO_SIGNAL.fallChance,false],[120,'bottom',HOLO_SIGNAL.fallChance,false],
+ ])('at %s fps towards %s, roll %s avoids landing: %s',(fps,edge,roll,escaped)=>{
+  const rolls=[.9,roll,{left:.05,right:.5,bottom:.95}[edge]];
+  const {body,root,events,sounds,bounds}=rig(undefined,()=>rolls.length?rolls.shift():(escaped ? .9 : 0)),full=body.layout().hit[0].r;
+  throwDown(body);
+  let moves=0,previousX=body.layout().x,hidden=0,currentBefore=false,currentAfter=false;
+  for(let i=0;i<fps*3;i++){
+   body.step(1/fps);const l=body.layout(),invisible=root.querySelector('[data-holo-projection]').style.opacity==='0';
+   if(invisible){hidden++;expect(l.hit).toEqual([]);}
+   if(Math.abs(l.x-previousX)>1){moves++;expect(invisible).toBe(true);}
+   previousX=l.x;
+   if(!invisible&&Number(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity'))>.1){
+    if(moves)currentAfter=true;else{currentBefore=true;expect(l.box.y+l.box.h).toBeLessThan(bounds.floorY);}
+   }
+  }
+  expect(moves).toBe(escaped?1:0);expect(hidden>0).toBe(escaped);
+  expect(events.some(e=>e.event==='touch'&&e.kind==='crash')).toBe(!escaped);
+  expect(sounds.includes('land')).toBe(!escaped);
+  expect(body.layout().hit[0].r/full).toBeCloseTo(escaped?1:HOLO_BEHAVIOUR.impact.scale,2);
+  if(escaped){
+   expect(currentBefore&&currentAfter).toBe(true);
+   expect(Number(root.querySelector('[data-part="tears"]').getAttribute('opacity'))).toBeLessThan(.01);
+   expect(body.layout().mode).toBe(edge==='bottom'?'idle':'climb');
+  }
+  expect(root.innerHTML).not.toMatch(/NaN|Infinity/);body.dispose();
+ });
+ it('tries again on a new release and allows a falling drop to escape',()=>{
+  let roll=.9;const {body,root,sounds}=rig(undefined,()=>roll);
+  dropFromHeight(body);advance(body,2);expect(sounds).toContain('land');
+  const landed=sounds.filter(name=>name==='land').length;roll=.1;
+  dropFromHeight(body,3000);let hidden=false;
+  for(let i=0;i<180;i++){body.step(1/60);hidden||=root.querySelector('[data-holo-projection]').style.opacity==='0';}
+  expect(hidden).toBe(true);expect(body.layout().mode).toBe('climb');
+  expect(sounds.filter(name=>name==='land')).toHaveLength(landed);body.dispose();
+ });
+ it('can be caught during the escape and resume falling after another release',()=>{
+  let roll=.1;const {body,root,sounds}=rig(undefined,()=>roll);throwDown(body);
+  for(let i=0;i<120&&Number(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity'))===0;i++)body.step(1/120);
+  expect(Number(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity'))).toBeGreaterThan(0);
+  const hit=body.layout().hit[0];body.pointer('down',{x:hit.x,y:hit.y,t:1000});body.step(1/60);
+  expect(body.layout().mode).toBe('drag');
+  expect(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity')).toBe('0');
+  expect(root.querySelector('[data-part="signal-screen"]').getAttribute('transform')).toContain('scale(1.0000 1.0000)');
+  roll=.9;body.drop({x:450,y:120});advance(body,3);
+  expect(body.layout().mode).not.toBe('air');expect(sounds).toContain('land');body.dispose();
+ });
+ it('leaves startup drops and ordinary jumps to land normally',()=>{
+  const {body,root,sounds}=rig(undefined,()=>0,{enter:'drop'});advance(body,2);
+  expect(sounds).toContain('land');const before=sounds.filter(name=>name==='land').length;
+  body.do('jump');advance(body,2);
+  expect(sounds.filter(name=>name==='land')).toHaveLength(before+1);
+  expect(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity')).toBe('0');body.dispose();
  });
 });
 

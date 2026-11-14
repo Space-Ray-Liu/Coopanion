@@ -2,7 +2,7 @@
   "manifest": 2,
   "api": 2,
   "id": "holoface",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "name": {
     "zh": "薄荷全息脸",
     "zh-Hant": "薄荷全息臉",
@@ -17,8 +17,8 @@
     "ru": "Мятная голограмма"
   },
   "about": {
-    "zh": "薄荷绿色全息电子脸，近方形屏幕、扫描线、像素高光和带薄侧边、高光和电流粒子的悬浮八边形手部。爬墙时一条电流从身体侧面中间连接到屏幕边缘。表情连续形变，眼睛、嘴和手部都不会瞬间换图。可沿屏幕左右边缘攀爬，最高停在屏幕三分之二高度；长时间无操作时休眠；明显摔落后保持朝向稳定，投影以每次不同的随机节奏闪断，整体轻微横向抖动并出现扫描线断层，暂时缩小并伴随机械泪痕；每轮累计空闲时间达到随机选定的 30–90 秒后，会瞬移到屏幕左侧、右侧或底部；消失和重现都伴随不规则闪烁与轻微抖动，先收缩成水平电流，再在新位置由电流展开恢复；拿起、睡眠、移动、对话、聆听或工作期间暂停。高风扇读数时微红、显示机械绿焰和使劲表情；风扇不可读时用持续 CPU/GPU 高负载近似触发。任务真实失败时用大哭，确认成功或用户夸奖时用致敬；根据上下文判断，不把每个工具结束都当成任务成功。",
-    "en": "A mint holographic face with a nearly square screen, scanlines, pixel highlights and floating octagonal hands with thin side edges, highlights and surrounding electrical particles. Climbing uses a single electrical current from the middle of the body's side to the screen edge. Expressions morph continuously. It climbs the screen sides up to two thirds of the height, sleeps during prolonged inactivity, and stays upright with fresh randomized projection dropouts, slight horizontal jitter and scanline interruptions after a hard user-thrown landing, alongside temporary shrinking and circuit-like tears. After a fresh random 30–90 seconds of idle time, it teleports to the left, right or bottom screen edge; holding, sleep, movement, conversation, listening and work pause the timer. Departure and arrival use irregular flickering and slight jitter: it collapses into a horizontal electric current, disappears, then expands from the current at its destination. High fan readings add a red tint, green digital exhaust and a straining face; sustained CPU/GPU load is the fallback when fan data is unavailable. For actual task failure use cry; for confirmed success or explicit praise use salute. Judge the context; an individual tool finishing is not by itself task success."
+    "zh": "薄荷绿色全息电子脸，近方形屏幕、扫描线、像素高光和带薄侧边、高光和电流粒子的悬浮八边形手部。爬墙时一条电流从身体侧面中间连接到屏幕边缘。表情连续形变，眼睛、嘴和手部都不会瞬间换图。可沿屏幕左右边缘攀爬，最高停在屏幕三分之二高度；长时间无操作时休眠；明显摔落后保持朝向稳定，投影以每次不同的随机节奏闪断，整体轻微横向抖动并出现扫描线断层，暂时缩小并伴随机械泪痕；每轮累计空闲时间达到随机选定的 20–60 秒后，会瞬移到屏幕左侧、右侧或底部；用户松手下落接近地面时，每次仅抽取一次，以 40% 概率瞬移规避落地，成功后不触发本次摔伤效果；消失和重现都伴随不规则闪烁与轻微抖动，先收缩成水平电流，再在新位置由电流展开恢复；拿起、睡眠、移动、对话、聆听或工作期间暂停。高风扇读数时微红、显示机械绿焰和使劲表情；风扇不可读时用持续 CPU/GPU 高负载近似触发。任务真实失败时用大哭，确认成功或用户夸奖时用致敬；根据上下文判断，不把每个工具结束都当成任务成功。",
+    "en": "A mint holographic face with a nearly square screen, scanlines, pixel highlights and floating octagonal hands with thin side edges, highlights and surrounding electrical particles. Climbing uses a single electrical current from the middle of the body's side to the screen edge. Expressions morph continuously. It climbs the screen sides up to two thirds of the height, sleeps during prolonged inactivity, and stays upright with fresh randomized projection dropouts, slight horizontal jitter and scanline interruptions after a hard user-thrown landing, alongside temporary shrinking and circuit-like tears. After a fresh random 20–60 seconds of idle time, it teleports to the left, right or bottom screen edge; holding, sleep, movement, conversation, listening and work pause the timer. Each user-released fall has one 40% chance to teleport away near the ground before impact, avoiding landing damage on success. Departure and arrival use irregular flickering and slight jitter: it collapses into a horizontal electric current, disappears, then expands from the current at its destination. High fan readings add a red tint, green digital exhaust and a straining face; sustained CPU/GPU load is the fallback when fan data is unavailable. For actual task failure use cry; for confirmed success or explicit praise use salute. Judge the context; an individual tool finishing is not by itself task success."
   },
   "author": "Coopanion custom",
   "license": "AGPL-3.0-or-later",

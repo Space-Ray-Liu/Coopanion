@@ -1,6 +1,7 @@
 /** Hologram pack adapter: the kit supplies movement, interaction, speech and work-state input. */
 import { createHoloFigure } from './face.js';
 import { HOLO_BEHAVIOUR, HoloEnvironment } from './environment.js';
+import { HOLO_SIGNAL } from './signal.js';
 export function createHoloBody(base, {kit,host,random=Math.random}) {
   const figure=createHoloFigure({random,autoRelocate:true});
   const words=Object.fromEntries(['victory','salute','thumbsup'].map(id=>[id,{expression:{like:'happy',seconds:4.5}}]));
@@ -9,7 +10,9 @@ export function createHoloBody(base, {kit,host,random=Math.random}) {
   const projection=host.root.ownerDocument.createElement('div');
   projection.dataset.holoProjection='';projection.style.cssText='position:absolute;inset:0';
   host.root.appendChild(projection);
-  const body=kit.createBody({...host,root:projection},{figure,words,...HOLO_BEHAVIOUR});
+  const body=kit.createBody({...host,root:projection},{figure,words,...HOLO_BEHAVIOUR,fall:{
+    before:HOLO_SIGNAL.fallLead,avoid:time=>figure.signal.evadeFall(time),active:()=>!!figure.signal.relocation?.fall,
+  }});
   const [shadow,,effects]=projection.querySelector('svg').children;
   const interaction={dialogOpen:false,listening:false,thinking:false,status:null};
   const originalSet=body.set, originalStep=body.step;

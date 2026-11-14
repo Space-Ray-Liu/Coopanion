@@ -337,6 +337,26 @@ describe('a body that stands anywhere on the stage (ground: free)', () => {
 });
 
 describe('picking the body up', () => {
+  it('resumes a suspended fall when the pack cancels its avoidance, without another attempt', () => {
+    let active = true;
+    const landed = [], pet = barePet(undefined, {
+      sfx: { play: name => { if (name === 'land') landed.push(name); } },
+      fall: { before: .12, avoid: () => true, active: () => active },
+    });
+    pet.render();
+    const hit = pet.toStage(128, 128);
+    pet.pointerDown({ ...hit, t: 0 });
+    pet.pointerMove({ x: hit.x + 20, y: hit.y - 100, t: 150 });
+    run(pet, .2);pet.dropAt({ x: 500, y: 60 });
+    for (let i = 0; i < 120 && !pet.pet.fallHeld; i++) run(pet, 1 / 60);
+    expect(pet.pet.fallHeld).toBe(true);
+    expect(pet.pet.fy).toBeLessThan(pet.pet.gy);
+    const height = pet.pet.fy;run(pet, .5);
+    expect(pet.pet.fy).toBe(height);expect(landed).toEqual([]);
+    active = false;run(pet, 2);
+    expect(landed).toHaveLength(1);
+    expect(pet.pet.fy).toBe(pet.pet.gy);expect(pet.pet.mode).not.toBe('air');
+  });
   it('a body falling through the air is held as soon as a press lands on it, and falls on when let go of', () => {
     const pet = barePet(undefined, { enter: 'drop' });
     run(pet, .25);

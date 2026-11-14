@@ -136,6 +136,8 @@ const HITS = [[128, 128, 108]];
  * `opts.rest.after` enables sustained idle sleep (seconds). `opts.climb` enables the pack's `climb-left`
  * and `climb-right` words, with `height` (share of stage height), `speed` (stage pixels/s) and `rest` (seconds).
  * `opts.impact` shrinks user-thrown landings above `speed`, to `scale` for `seconds`, with `tears` seconds of damage.
+ * `opts.fall` calls `avoid(time)` once per user-released fall, about `before` seconds ahead of landing. A true result
+ * suspends flight while `active()` is true; the pack can relocate the suspended body or let it resume falling.
  * Frames add `size`, `impact`, `effort` and `wall` (left/right/null); absent options keep the kit's usual behaviour.
  * While attached, `wallAnchor` is the screen edge in logo coordinates, level with `anchors.wall`
  * ([left x, right x, y]); it is null on approach or when the group is collapsed.
@@ -157,7 +159,7 @@ export function createPet(els, opts) {
     speed: 0, stride: 0, lift: 0, bob: 0, phase: 0, lastHalf: 0, lean: 0, tilt: 0, tiltV: 0,
     sq: 0, sqv: 0, sitK: 0, stretch: 0, low: 0, gap: [50, 50], look: [0, 0], drowse: 0,
     feet: STAND.map(l => [l[2], l[3]]), blinkT: 1.5, blinkAge: 9, expr: null, exprUntil: 0,
-    nextAt: 1.2, emitAt: 0, airKind: 'jump', turned: false, startle: false, lastAct: '',
+    nextAt: 1.2, emitAt: 0, airKind: 'jump', userFall: false, fallTried: false, fallHeld: false, turned: false, startle: false, lastAct: '',
     turnAcc: 0, dx: 0, dy: 0, jumpV: 700, jumpVx: 0, xf: null, blushK: 0,
     eyeSig: '', eyeCur: null, eyePrev: null, eyeDims: [[16, 16, 0, 0], [16, 16, 0, 0]], swapAge: 9,
     glance: [0, 0], glanceAt: 0, swing: 0, swingV: 0, prevA: null, velX: 0, talkK: 0, sfxAt: 0, skid: false, cue: 0,
@@ -226,6 +228,8 @@ export function createPet(els, opts) {
     // a walk or run asked for as a word is done once the body stops going, whatever stopped it
     if ((prev === 'walk' || prev === 'run') && pet.walkWord && m !== prev) { onEvent('done', { word: pet.walkWord }); pet.walkWord = null; }
     pet.mode = m; pet.modeT = 0; pet.turned = false; pet.startle = false; pet.skid = false; pet.cue = 0;
+    pet.fallHeld = false;
+    if (m === 'air') { pet.fallTried = false; pet.userFall = false; }
     if (m !== 'climb') pet.wall = pet.wallPhase = null;
     Object.assign(pet, o);
     if (prev !== m) onEvent('mode', { mode: m });
@@ -536,6 +540,18 @@ export function createPet(els, opts) {
         break;
       }
       case 'air': {
+        if (pet.fallHeld) {
+          if (opts.fall.active()) break;
+          pet.fallHeld = false;
+        }
+        if (opts.fall && pet.userFall && !pet.fallTried && pet.vy >= 0) {
+          const distance = Math.max(0, pet.gy - pet.fy);
+          const seconds = (Math.sqrt(pet.vy ** 2 + 4600 * distance) - pet.vy) / 2300;
+          if ((distance > 0 || pet.vy > 0) && seconds <= opts.fall.before + dt) {
+            pet.fallTried = true;
+            if (opts.fall.avoid(T)) { pet.fallHeld = true; break; }
+          }
+        }
         pet.vy += 2300 * dt;
         pet.vx *= Math.exp(-dt * .4);
         pet.x += pet.vx * dt; pet.fy += pet.vy * dt;
@@ -892,7 +908,7 @@ export function createPet(els, opts) {
         press = null; onEvent('touch', { kind: 'drop', x: Math.round(pet.x) }); return;
       }
       if (speed > 700) play('whoosh', 'move');
-      setMode('air');
+      setMode('air', { userFall: true });
       onEvent('touch', { kind: speed > 700 ? 'throw' : 'drop', x: Math.round(pet.x) });
     } else if (now(p) - press.t < 400) {
       if (pet.mode === 'sleep' || pet.mode === 'sit') {
@@ -924,12 +940,12 @@ export function createPet(els, opts) {
     if (freeGround) pet.gy = clamp(pet.fy, minY(), floorY);
     pet.vx = 0; pet.vy = 0; pet.gvy = 0;
     pet.airKind = 'drop';
-    setMode('air');
+    setMode('air', { userFall: true });
     onEvent('touch', { kind: 'drop', x: Math.round(pet.x) });
   }
   /** Instantly places an unheld body at a screen edge; side placement rests on the wall before descending. */
   function relocate(edge,position) {
-    if(press||busy()||(edge!=='bottom'&&!opts.climb))return false;
+    if(press||(busy()&&!pet.fallHeld)||(edge!=='bottom'&&!opts.climb))return false;
     const k=clamp(position,0,1),side=edge!=='bottom';
     setMode(side?'climb':'idle',side?{wall:edge,wallPhase:'rest',wallRest:T+opts.climb.rest}:{});
     pet.x=pet.target=edge==='left'?minX():edge==='right'?maxX():lerp(minX(),maxX(),k);
@@ -1048,6 +1064,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
  * cue(kind), talk(), setScheme(id, o), dispose(); `words` lists every word its do() knows.
  * A pack can call `relocate(edge, position)` locally to place an unheld body instantly on the left, right or bottom
  * screen edge. `position` is a fraction along its permitted span; side placement requires `opts.climb` and rests there.
+ * A fall suspended by `opts.fall` can relocate before it lands; other airborne bodies keep falling.
  */
 export function createBody(host, opts) {
   const doc = host.root.ownerDocument;

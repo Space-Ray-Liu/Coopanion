@@ -1,5 +1,5 @@
 /** Impact interference and the autonomous relocation clock run independently. */
-export const HOLO_SIGNAL = { relocationInterval:[30,90], jitter:4, seconds:[3,4] };
+export const HOLO_SIGNAL = { relocationInterval:[20,60], fallChance:.4, fallLead:.05, jitter:4, seconds:[3,4] };
 const clamp=n=>Math.max(0,Math.min(1,n));
 const smooth=n=>{const p=clamp(n);return p*p*(3-2*p);};
 function bursts(seconds,r){
@@ -36,22 +36,27 @@ export class HoloSignal {
     this.duration=HOLO_SIGNAL.seconds[0]+r()*(HOLO_SIGNAL.seconds[1]-HOLO_SIGNAL.seconds[0]);
     this.pulses=bursts(this.duration,r);
   }
+  startRelocation(time,fall=false) {
+    const r=this.random,edge=['left','right','bottom'][Math.floor(r()*3)],position=.15+r()*.7;
+    const exit=fall ? .16+r()*.06 : .58+r()*.18,seconds=.16+r()*.12,enter=.65+r()*.18,seed=r();
+    this.relocation={edge,position,fall,start:time,at:time+exit,exit,seconds,enter,seed,pulses:bursts(exit+seconds+enter,r)};
+    this.pending=null;this.moved=false;this.remaining=null;
+  }
+  evadeFall(time) {
+    if(this.relocation||this.random()>=HOLO_SIGNAL.fallChance)return false;
+    this.startRelocation(time,true);return true;
+  }
   advance(time,impact,mode) {
     const dt=this.lastTime===null?0:Math.max(0,time-this.lastTime);this.lastTime=time;
     if(impact>this.previousImpact)this.begin(time);
     this.previousImpact=impact;
     const eligible=this.autoRelocate&&!this.paused&&['idle','look','sit'].includes(mode);
-    if(this.paused||mode==='drag'||mode==='air'||(this.relocation&&!this.moved&&!eligible))this.cancelRelocation();
+    const escaping=this.relocation?.fall;
+    if(mode==='drag'||(mode==='air'&&!escaping)||(!escaping&&(this.paused||(this.relocation&&!this.moved&&!eligible))))this.cancelRelocation();
     if(eligible&&!this.relocation){
       if(this.remaining===null){const [min,max]=HOLO_SIGNAL.relocationInterval;this.remaining=min+this.random()*(max-min);}
       if(this.wasEligible)this.remaining-=dt;
-      if(this.remaining<=0){
-        const r=this.random;
-        const edge=['left','right','bottom'][Math.floor(r()*3)],position=.15+r()*.7;
-        const exit=.58+r()*.18,seconds=.16+r()*.12,enter=.65+r()*.18,seed=r();
-        this.relocation={edge,position,start:time,at:time+exit,exit,seconds,enter,seed,pulses:bursts(exit+seconds+enter,r)};
-        this.pending=null;this.moved=false;this.remaining=null;
-      }
+      if(this.remaining<=0)this.startRelocation(time);
     }
     this.wasEligible=eligible;
     const age=time-this.started;

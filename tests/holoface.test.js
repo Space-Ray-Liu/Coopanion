@@ -9,7 +9,7 @@ function svg(){const dom=new JSDOM('<!doctype html><body><svg xmlns="http://www.
 const frame=(face,t)=>({face,t,blink:0,talk:0,look:[0,0],mode:'idle'});
 function liveBody(facing=1){
  const group=svg(),root=group.ownerDocument.body,events=[];
- const body=createHoloBody(new URL('http://localhost/'),{kit,host:{root,bounds:()=>({W:900,H:600,floorY:570,S:.6}),start:{enter:false,x:450,facing},emit:(kind,detail)=>events.push({event:kind,...detail}),sound(){}}});
+ const body=createHoloBody(new URL('http://localhost/'),{kit,random:()=>.9,host:{root,bounds:()=>({W:900,H:600,floorY:570,S:.6}),start:{enter:false,x:450,facing},emit:(kind,detail)=>events.push({event:kind,...detail}),sound(){}}});
  body.set({roam:'off'});body.step(1/60);
  const [,pet,fx]=root.querySelector('svg.kit').children;
  return {body,root,pet,fx,events};
