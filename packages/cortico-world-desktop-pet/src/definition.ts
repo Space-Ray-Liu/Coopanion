@@ -58,7 +58,7 @@ const DESCRIBE: WorldDescribe = {
     },
     {
       type: 'desktop-pet.figure',
-      description: { zh: '使用者换了形象或装扮,或形象没能加载。', en: 'The person switched the figure or its dress, or a figure failed to load.' },
+      description: { zh: '身体连接后报告当前能力,或使用者换了形象、装扮,或形象没能加载。', en: 'The connected body reports its current capabilities, the person changed its figure or dress, or a figure failed to load.' },
     },
     {
       type: SELF_TYPE,

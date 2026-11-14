@@ -16,7 +16,7 @@ export const petToolDecls = (language: Language = 'zh'): Array<Omit<ToolDef, 'ha
   {
     name: 'pet_say',
     tags: ['speak'],
-    description: 'Say something in a speech bubble above the pet. Expressions and motions go into the script as markers: 【…】 plays them first and then starts a new bubble; <…> plays them when the typing reaches that point. The receipt says roughly how long it stays on screen; a non-empty script fails when the pet window is not connected.',
+    description: 'Say something in a speech bubble above the pet. Use the current figure vocabulary from the environment section or the latest [figure] update for expression and motion markers: 【…】 plays them first and then starts a new bubble; <…> plays them when the typing reaches that point. The receipt says roughly how long it stays on screen; a non-empty script fails when the pet window is not connected.',
     parameters: {
       type: 'object',
       properties: {
@@ -92,7 +92,7 @@ export const petToolDecls = (language: Language = 'zh'): Array<Omit<ToolDef, 'ha
   {
     name: 'pet_act',
     tags: ['act'],
-    description: 'Play a sequence of expressions or motions without speaking (the current figure\'s vocabulary is in the environment section). Returns at once; words marked as held until the next action stay on.',
+    description: 'Play a sequence of the current figure\'s executable expressions or motions without speaking. Its vocabulary is in the environment section or the latest [figure] update, including abilities added to an existing conversation. Returns at once; words marked as held until the next action stay on.',
     parameters: {
       type: 'object',
       properties: {

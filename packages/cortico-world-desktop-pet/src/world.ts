@@ -491,13 +491,15 @@ export class DesktopPetWorld implements World {
   private readonly packProblems = new Set<string>();
   /** The figure (and a pack's pick, `id:scheme`) the pet page last said it shows, null before it said. */
   private figureShown: string | null = null;
+  /** The first confirmed body in this run is announced even when a restored session has an older prefix. */
+  private bodyAnnounced = false;
   /** The figure the page said would not run, while the skin still names it: the page shows Coo meanwhile. */
   private figureFailed: string | null = null;
   /** Why Coo, the last stand-in, would not run on the connected page, which then shows no figure at all. */
   private bodyMissing: string | null = null;
   /** The words each pack's body said it knows when the page last loaded it; a body that did not say is taken at its manifest's word. */
   private readonly bodyWords = new Map<string, ReadonlySet<string>>();
-  /** The words the bot was last told it may use: its prompt's at start, then a `[figure]` event's or a `pet_set` receipt's. */
+  /** Vocabulary last announced, with a provisional baseline until the first body report. */
   private toldVocab: readonly VocabWord[] = [];
   /** The figure's own `pet_move_to` targets the bot was last told of, as `toldVocab` the words. */
   private toldMoves: readonly MoveTarget[] = [];
@@ -601,10 +603,8 @@ export class DesktopPetWorld implements World {
   }
 
   /**
-   * The pet page's report of the figure it shows: a switch the bot did not see in its prompt is told
-   * after the debounce (changes in a row come as one batch); a pack that would not load (the page then
-   * shows Coo) is told at once. Either way the bot hears how the words it may use changed, the words
-   * a newly loaded body says it does not know among them (`words`, the kit's bodies send it).
+   * The first connected body supplies its full capabilities on the next wake. Later switches are
+   * debounced and failures reported at once. Every report filters words the body does not support.
    */
   private onFigure(msg: PageMessage): void {
     const id = typeof msg.id === 'string' ? msg.id : COO;
@@ -636,6 +636,15 @@ export class DesktopPetWorld implements World {
     this.bodyMissing = null;
     const shown = id === COO ? COO : `${id}:${typeof msg.scheme === 'string' ? msg.scheme : ''}`;
     this.figureShown = shown;
+    if (!this.bodyAnnounced) {
+      this.bodyAnnounced = true;
+      if (shown === this.botLook) this.botLook = null;
+      this.toldVocab = this.vocab();
+      this.toldMoves = this.moves();
+      const text = this.t.figureReady(this.bodyText(pack), vocabTable(this.toldVocab, this.language), moveTable(this.toldMoves, this.language));
+      void this.push('desktop-pet.figure', 'desktop-pet.figure', text, 'piggyback');
+      return;
+    }
     let look: string | null = null;
     // what the chat page says of a switch the person made: another figure, or another dress of the same one
     let change: ChatFigure | null = null;
@@ -658,7 +667,8 @@ export class DesktopPetWorld implements World {
     this.startCursor = host.store.latestCursor() + 1;
     this.log = host.log;
     this.cua.start(host);
-    // the words and targets the prompt is rendered with, until the bot is told otherwise
+    this.bodyAnnounced = false;
+    // Baseline for changes until the connected body supplies its startup snapshot.
     this.toldVocab = this.vocab();
     this.toldMoves = this.moves();
     await this.server.start();

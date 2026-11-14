@@ -61,6 +61,7 @@ const zh = {
   reasonUnknown: '原因不明',
   figureNow: (body: string) => `[figure] 你现在的样子:${body}。`,
   figureNote: (note: string) => `[figure] ${note}`,
+  figureReady: (body: string, vocab: string, moves: string) => `[figure] 当前已连接的身体:${body}。下面是它现在可调用的表情、动作和移动目标。用 pet_act 或 pet_say 的动作标记调用这些词;本次对话中的身体能力以这份当前词表为准。\n\n${vocab}${moves ? `\n\n${moves}` : ''}`,
   lookNow: (body: string) => `你现在的样子:${body}。`,
   /** The body as the prompt and the figure events describe it: name, looks, picked options. */
   body: (name: string, about: string, picks: string[]) => `${name},${about}${picks.length ? `(${picks.join(',')})` : ''}`,
@@ -191,6 +192,7 @@ const en: typeof zh = {
   reasonUnknown: 'reason unknown',
   figureNow: (body) => `[figure] You now look like this: ${body}.`,
   figureNote: (note) => `[figure] ${note}`,
+  figureReady: (body, vocab, moves) => `[figure] Connected body: ${body}. Its current callable expressions, motions and movement targets follow. Use these action IDs with pet_act or pet_say markers; this is the current vocabulary for the body in this conversation.\n\n${vocab}${moves ? `\n\n${moves}` : ''}`,
   lookNow: (body) => `You now look like this: ${body}.`,
   body: (name, about, picks) => `${name}, ${about}${picks.length ? ` (${picks.join(', ')})` : ''}`,
   pick: (axis, option) => `${axis}: ${option}`,

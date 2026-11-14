@@ -301,6 +301,26 @@ describe('with a pet page', () => {
     expect((await page.next((m) => m.t === 'say')).beats).toMatchObject([{ actions: ['teleport'], text: '我来啦' }]);
   });
 
+  it.each(['zh', 'en'] as const)('announces the connected body capabilities once on startup in %s', async (language) => {
+    const { world, host } = await mounted((c) => { c.skin.figure = 'holoface'; }, { modelLanguage: () => language });
+    const page = await FakePage.open(origin(world));
+    cleanup.push(() => page.close());
+    const report = { t: 'figure', id: 'holoface', ok: true, words: ['neutral', 'teleport'] };
+    page.send(report);
+    await expect.poll(() => host.events.length).toBe(1);
+    expect(host.events[0]!.text).toContain('[figure]');
+    expect(host.events[0]!.text).toContain('teleport');
+    expect(host.events[0]!.text).toContain('pet_act');
+    expect(host.events[0]!.text).not.toContain('| climb-left');
+    expect(host.pushOpts[0]).toEqual({ trigger: 'piggyback' });
+    expect(chatItem(host.events[0]!)).toBeNull();
+    if (language === 'en') expect(host.events[0]!.text).not.toMatch(/\p{Script=Han}/u);
+    page.send(report);
+    page.send({ t: 'text', text: 'ready' });
+    await expect.poll(() => host.events.filter(e => e.type === 'desktop-pet.message').length).toBe(1);
+    expect(host.events.filter(e => e.type === 'desktop-pet.figure')).toHaveLength(1);
+  });
+
   it('takes the words of the body on screen: a pack\'s own, and Coo\'s once the page says the pack would not run', async () => {
     const root = mkdtempSync(join(tmpdir(), 'packs-'));
     mkdirSync(join(root, 'robot'));
@@ -338,7 +358,9 @@ describe('with a pet page', () => {
     expect(receipt).toContain('| beep | 哔哔 | 哔一声 |');
     page.send({ t: 'figure', id: 'robot', ok: true, words: ['sit'] });
     await expect.poll(() => host.events.length).toBe(1);
-    expect(host.events[0].text).toMatch(/\[figure\] 词表变了。这些词用不了了:beep\(哔哔\)。$/);
+    expect(host.events[0].text).toContain('[figure] 当前已连接的身体:');
+    expect(host.events[0].text).toContain('| sit | 坐下 |');
+    expect(host.events[0].text).not.toContain('| beep |');
     expect(await tool(world, 'pet_act').handler({ actions: ['哔哔'] }, ctx)).toMatchObject({ failed: true });
   });
 
