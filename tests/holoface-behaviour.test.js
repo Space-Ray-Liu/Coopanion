@@ -89,20 +89,41 @@ describe('hologram wall climbing and impact',()=>{
   const hit=body.layout().hit[0];body.pointer('down',{x:hit.x,y:hit.y,t:0});body.pointer('move',{x:hit.x+40,y:hit.y+20,t:200});body.step(1/30);
   expect(body.layout().mode).toBe('drag');body.dispose();
  });
- it('shrinks only a hard user landing, scales hit areas, shows mechanical tears and recovers',()=>{
-  const {body,root}=rig(),size=()=>body.layout().hit[0].r;
+ it('keeps a hard landing upright while its projection flickers, shrinks and recovers',()=>{
+  const {body,root,events}=rig(),size=()=>body.layout().hit[0].r;
   const full=size(),hit=body.layout().hit[0];
   body.pointer('down',{x:hit.x,y:hit.y,t:0});body.pointer('move',{x:450,y:120,t:100});advance(body,.5);
   body.pointer('move',{x:450,y:400,t:200});body.step(1/60);body.pointer('up',{x:450,y:400,t:210});
-  advance(body,3);
+  const opacity=[],tilts=[],positions=[];
+  for(let i=0;i<180;i++){
+   body.step(1/60);
+   if(!events.some(e=>e.event==='touch'&&e.kind==='crash'))continue;
+   const group=root.querySelector('[data-expression]');
+   opacity.push(Number(group.querySelector('[data-part="projection"]').getAttribute('opacity')));
+   tilts.push(Number(group.getAttribute('transform').match(/rotate\(([^)]+)\)/)[1]));
+   positions.push(body.layout().x);
+   const local=group.querySelector('[data-part="float"]').getAttribute('transform');
+   expect(Number(local.match(/translate\(([^ ]+)/)[1])).toBe(0);
+   expect(Number(local.match(/rotate\(([^ ]+)/)[1])).toBe(0);
+  }
+  expect(opacity.length).toBeGreaterThan(60);
+  expect(Math.min(...opacity)).toBeLessThan(.35);expect(Math.max(...opacity)).toBe(1);
+  expect(Math.max(...tilts.map(Math.abs))).toBeLessThan(.001);
+  expect(Math.max(...positions)-Math.min(...positions)).toBeLessThan(.01);
+  advance(body,.6);
+  expect(root.querySelector('[data-part="projection"]').getAttribute('opacity')).toBe('1.000');
   expect(size()/full).toBeCloseTo(HOLO_BEHAVIOUR.impact.scale,2);
   expect(root.querySelector('[data-part="teartracks"]')).not.toBeNull();
   expect(Number(root.querySelector('[data-part="tears"]').getAttribute('opacity'))).toBeGreaterThan(.2);
   advance(body,HOLO_BEHAVIOUR.impact.seconds+3);expect(size()/full).toBeCloseTo(1,2);
   body.dispose();
  });
- it('keeps its normal size during an ordinary jump',()=>{
-  const {body}=rig(),full=body.layout().hit[0].r;body.do('jump');advance(body,3);
+ it.each(['jump','cry'])('keeps its size and projection steady during %s without impact',word=>{
+  const {body,root}=rig(),full=body.layout().hit[0].r;body.do(word);
+  for(let i=0;i<90;i++){
+   body.step(1/30);
+   expect(Number(root.querySelector('[data-part="projection"]').getAttribute('opacity'))).toBe(1);
+  }
   expect(body.layout().hit[0].r/full).toBeCloseTo(1,3);body.dispose();
  });
 });

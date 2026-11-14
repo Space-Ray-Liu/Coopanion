@@ -119,8 +119,9 @@ const HITS = [[128, 128, 108]];
  * `opts.figure` draws the body: `figure.draw(petG, face, frame)` keeps its own elements inside `petG` (logo space,
  * feet at y=256). Its frame adds the face's name, the mode, how long the mode has run, the talk level,
  * drowsiness, how far the body sits, and `status`: the kind of work the page's status bubble shows (src/status.ts), or null.
- * `figure.groupTilt(mode, tilt, lean)`, if present, returns the rotation (degrees) the whole group gets
+ * `figure.groupTilt(mode, tilt, lean, { impact })`, if present, returns the rotation (degrees) the whole group gets
  * instead of tilt + lean; the frame carries tilt, lean and that rotation (groupRot) so the figure can bend the rest.
+ * `impact` is the remaining hard-landing damage, normalized from 1 to 0, also passed to `draw`.
  * `figure.mirror: false` keeps a front-facing drawing and gaze when travel changes direction.
  * `figure.groupScale(mode, sx, sy)` may return the group's scale factors for squash, stretch and breathing.
  * `figure.particles.grab` and `.land` may describe a burst: `at` ([x,y]), `radius` ([rx,ry]), `count`,
@@ -743,6 +744,7 @@ export function createPet(els, opts) {
 
   function render() {
     const fc = pet._fc || FACES.neutral.f(0), fname = pet._fname || 'neutral';
+    const impact = Math.max(0, (pet.damageUntil - T) / (opts.impact?.tears ?? 1));
     const drag = pet.mode === 'drag';
     const br = Math.sin(T * (pet.mode === 'sleep' ? 1.7 : 2.4));
     let sx = (1 + pet.sq * .7) * (1 - .05 * pet.stretch) * (1 - .009 * br);
@@ -754,7 +756,7 @@ export function createPet(els, opts) {
     else if (pet.pulse?.kind === 'shiver') AX += Math.sin(T * 75) * 1.1 * envelope((T - pet.pulse.t0) / pet.pulse.dur, .08, .85);
     // a figure may keep tilt and lean off the whole group and bend its own parts instead
     const ds = drawScale(), facing = visualFacing(), kx = ds * facing * sx, ky = ds * sy, lean = pet.lean * facing;
-    const rot = custom?.groupTilt ? custom.groupTilt(pet.mode, pet.tilt, lean) : pet.tilt + lean;
+    const rot = custom?.groupTilt ? custom.groupTilt(pet.mode, pet.tilt, lean, { impact }) : pet.tilt + lean;
     pet.xf = { AX, AY, ax, ay, kx, ky, rot };
     let wallAnchor=null;
     if(pet.wall && pet.wallPhase!=='approach' && Math.abs(kx)>1e-6 && Math.abs(ky)>1e-6){
@@ -775,7 +777,7 @@ export function createPet(els, opts) {
     custom.draw(petG, face, {
       look: pet.look, legs, low: pet.low, t: T, blink, eyeClose, acc: skin, swing: pet.swing,
       face: fname, mode: pet.mode, modeT: pet.modeT, talk: pet.talkK, status: pet.status, drowse: pet.drowse, sit: pet.sitK, facing, tilt: pet.tilt, lean, groupRot: rot, gesture,
-      size: pet.size, impact: Math.max(0, (pet.damageUntil - T) / (opts.impact?.tears ?? 1)), effort: pet.effort, wall: pet.wall, wallAnchor,
+      size: pet.size, impact, effort: pet.effort, wall: pet.wall, wallAnchor,
     });
 
     const footY = drag ? pet.dy + 220 * ds * 1.09 : pet.fy;
