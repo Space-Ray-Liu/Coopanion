@@ -152,6 +152,49 @@ describe('autonomous hologram relocation',()=>{
  });
 });
 
+describe('requested hologram teleport',()=>{
+ it.each(['left','right','bottom'])('runs the advertised action during conversation and work, arriving at %s',edge=>{
+  const rolls=[.9,{left:.05,right:.5,bottom:.95}[edge]],next=chooseEdge('bottom');
+  const {body,root,events}=rig(undefined,()=>rolls.length?rolls.shift():next());
+  body.set({dialogOpen:true,thinking:true,listening:true,status:'read'});
+  expect(body.words).toContain('teleport');expect(body.do('teleport')).toBe(true);
+  expect(body.layout().busy).toBe(true);
+  expect(body.do('teleport')).toBe(false);
+  let hidden=0,moves=0,x=body.layout().x;
+  for(let i=0;i<180;i++){
+   body.step(1/60);const l=body.layout(),invisible=root.querySelector('[data-holo-projection]').style.opacity==='0';
+   if(invisible){hidden++;expect(l.hit).toEqual([]);}
+   if(Math.abs(l.x-x)>1){moves++;expect(invisible).toBe(true);}x=l.x;
+  }
+  expect(hidden).toBeGreaterThan(3);expect(moves).toBe(1);
+  expect(body.layout().mode).toBe(edge==='bottom'?'idle':'climb');
+  expect(body.layout().busy).toBe(false);
+  expect(root.querySelector('[data-holo-projection]').style.opacity).toBe('1');
+  expect(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity')).toBe('0');
+  expect(events.some(e=>e.event==='touch'&&e.kind==='crash')).toBe(false);body.dispose();
+ });
+ it.each(['sleep','climb-left'])('can start from %s',word=>{
+  const {body,root,events}=rig();body.do(word);advance(body,word==='sleep'?.5:8);
+  expect(body.do('teleport')).toBe(true);let hidden=false;
+  for(let i=0;i<180;i++){body.step(1/60);hidden||=root.querySelector('[data-holo-projection]').style.opacity==='0';}
+  expect(hidden).toBe(true);expect(body.layout().mode).toBe('idle');
+  expect(events.some(e=>e.event==='touch'&&e.kind==='crash')).toBe(false);body.dispose();
+ });
+ it('cancels on a press and can be requested again after release',()=>{
+  const {body,root}=rig();body.set({dialogOpen:true});expect(body.do('teleport')).toBe(true);advance(body,.3);
+  const hit=body.layout().hit[0];body.pointer('down',{x:hit.x,y:hit.y,t:0});body.step(1/60);
+  expect(root.querySelector('[data-part="teleport-current"]').getAttribute('opacity')).toBe('0');
+  expect(root.querySelector('[data-part="signal-screen"]').getAttribute('transform')).toContain('scale(1.0000 1.0000)');
+  expect(body.do('teleport')).toBe(false);advance(body,1);
+  body.pointer('up',{x:hit.x,y:hit.y,t:2000});expect(body.do('teleport')).toBe(true);body.dispose();
+ });
+ it('waits for a held or airborne body to be released and land',()=>{
+  const {body}=rig();dropFromHeight(body);
+  expect(body.do('teleport')).toBe(false);advance(body,2);
+  expect(body.do('teleport')).toBe(true);body.dispose();
+ });
+});
+
 describe('hologram fall evasion',()=>{
  it.each([
   [15,HOLO_SIGNAL.fallChance-.001,true],[60,HOLO_SIGNAL.fallChance-.001,true],[120,HOLO_SIGNAL.fallChance-.001,true],

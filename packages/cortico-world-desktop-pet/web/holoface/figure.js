@@ -22,7 +22,8 @@ export function createHoloBody(base, {kit,host,random=Math.random}) {
     originalSet(state);
   };
   body.step=dt=>{
-    figure.signal.paused=originalLayout().pressing||Object.values(interaction).some(Boolean);
+    figure.signal.pressing=originalLayout().pressing;
+    figure.signal.paused=figure.signal.pressing||Object.values(interaction).some(Boolean);
     originalSet(environment.step(dt));originalStep(dt);
     const jump=figure.signal.takeRelocation();
     if(jump)body.relocate(jump.edge,jump.position);
@@ -34,11 +35,19 @@ export function createHoloBody(base, {kit,host,random=Math.random}) {
   const originalLayout=body.layout,originalDispose=body.dispose;
   body.layout=()=>{
     const layout=originalLayout();
-    return {...layout,moving:layout.moving||figure.signal.active,...(figure.signal.hidden?{hit:[]}: {})};
+    return {...layout,busy:layout.busy||!!figure.signal.relocation,moving:layout.moving||figure.signal.active,...(figure.signal.hidden?{hit:[]}: {})};
   };
   body.dispose=()=>{originalDispose();projection.remove();};
   const originalDo=body.do;
+  body.words.push('teleport');
   body.do=word=>{
+    if(word==='teleport'){
+      const layout=originalLayout();
+      if(layout.busy||layout.pressing||figure.signal.relocation)return false;
+      if(layout.mode!=='climb')originalDo('stand');
+      figure.signal.startRelocation(figure.signal.lastTime??0,{command:true});
+      return true;
+    }
     const accepted=originalDo(word);
     if(accepted) figure.request(word,word==='cry'?5:4.5);
     return accepted;

@@ -27,7 +27,7 @@ export class HoloSignal {
   constructor({random=Math.random,autoRelocate=true}={}) {
     this.random=random;this.previousImpact=0;this.started=-Infinity;this.duration=0;this.pulses=[];
     this.relocation=null;this.pending=null;this.moved=false;this.hidden=false;this.active=false;
-    this.autoRelocate=autoRelocate;this.paused=false;this.remaining=null;this.lastTime=null;this.wasEligible=false;
+    this.autoRelocate=autoRelocate;this.paused=false;this.pressing=false;this.remaining=null;this.lastTime=null;this.wasEligible=false;
     this.visual={...transition(0,null),opacity:1};
   }
   begin(time) {
@@ -36,15 +36,15 @@ export class HoloSignal {
     this.duration=HOLO_SIGNAL.seconds[0]+r()*(HOLO_SIGNAL.seconds[1]-HOLO_SIGNAL.seconds[0]);
     this.pulses=bursts(this.duration,r);
   }
-  startRelocation(time,fall=false) {
+  startRelocation(time,{fall=false,command=false}={}) {
     const r=this.random,edge=['left','right','bottom'][Math.floor(r()*3)],position=.15+r()*.7;
     const exit=fall ? .16+r()*.06 : .58+r()*.18,seconds=.16+r()*.12,enter=.65+r()*.18,seed=r();
-    this.relocation={edge,position,fall,start:time,at:time+exit,exit,seconds,enter,seed,pulses:bursts(exit+seconds+enter,r)};
+    this.relocation={edge,position,fall,command,start:time,at:time+exit,exit,seconds,enter,seed,pulses:bursts(exit+seconds+enter,r)};
     this.pending=null;this.moved=false;this.remaining=null;
   }
   evadeFall(time) {
     if(this.relocation||this.random()>=HOLO_SIGNAL.fallChance)return false;
-    this.startRelocation(time,true);return true;
+    this.startRelocation(time,{fall:true});return true;
   }
   advance(time,impact,mode) {
     const dt=this.lastTime===null?0:Math.max(0,time-this.lastTime);this.lastTime=time;
@@ -52,7 +52,8 @@ export class HoloSignal {
     this.previousImpact=impact;
     const eligible=this.autoRelocate&&!this.paused&&['idle','look','sit'].includes(mode);
     const escaping=this.relocation?.fall;
-    if(mode==='drag'||(mode==='air'&&!escaping)||(!escaping&&(this.paused||(this.relocation&&!this.moved&&!eligible))))this.cancelRelocation();
+    const directed=escaping||this.relocation?.command;
+    if(this.pressing||mode==='drag'||(mode==='air'&&!escaping)||(!directed&&(this.paused||(this.relocation&&!this.moved&&!eligible))))this.cancelRelocation();
     if(eligible&&!this.relocation){
       if(this.remaining===null){const [min,max]=HOLO_SIGNAL.relocationInterval;this.remaining=min+this.random()*(max-min);}
       if(this.wasEligible)this.remaining-=dt;

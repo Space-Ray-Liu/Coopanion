@@ -287,6 +287,20 @@ describe('with a pet page', () => {
     expect(out.text).toContain('fly');
   });
 
+  it('exposes hologram teleport to the model and routes it through actions and speech', async () => {
+    const { world } = await mounted((c) => { c.skin.figure = 'holoface'; });
+    const page = await FakePage.open(origin(world));
+    cleanup.push(() => page.close());
+    const vars = await world.envPromptVars();
+    expect(vars['pet.vocab']).toContain('| teleport | 瞬移 |');
+    expect(vars['pet.vocab']).toContain('对话期间也可执行');
+    const receipt = await tool(world, 'pet_act').handler({ actions: ['瞬移'] }, ctx);
+    expect(receipt).not.toMatchObject({ failed: true });
+    expect((await page.next((m) => m.t === 'act')).actions).toEqual(['teleport']);
+    await tool(world, 'pet_say').handler({ script: '【瞬移】我来啦' }, ctx);
+    expect((await page.next((m) => m.t === 'say')).beats).toMatchObject([{ actions: ['teleport'], text: '我来啦' }]);
+  });
+
   it('takes the words of the body on screen: a pack\'s own, and Coo\'s once the page says the pack would not run', async () => {
     const root = mkdtempSync(join(tmpdir(), 'packs-'));
     mkdirSync(join(root, 'robot'));
