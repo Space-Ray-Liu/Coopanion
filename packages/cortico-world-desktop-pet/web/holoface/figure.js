@@ -1,15 +1,30 @@
 /** Hologram pack adapter: the kit supplies movement, interaction, speech and work-state input. */
 import { createHoloFigure } from './face.js';
 import { HOLO_BEHAVIOUR, HoloEnvironment } from './environment.js';
-export function createHoloBody(base, {kit,host}) {
-  const figure=createHoloFigure();
+export function createHoloBody(base, {kit,host,random=Math.random}) {
+  const figure=createHoloFigure({random});
   const words=Object.fromEntries(['victory','salute','thumbsup'].map(id=>[id,{expression:{like:'happy',seconds:4.5}}]));
   for(const id of ['climb-left','climb-right']) words[id]={motion:{seconds:60}};
   const environment=new HoloEnvironment();
-  const body=kit.createBody(host,{figure,words,...HOLO_BEHAVIOUR});
+  const projection=host.root.ownerDocument.createElement('div');
+  projection.dataset.holoProjection='';projection.style.cssText='position:absolute;inset:0';
+  host.root.appendChild(projection);
+  const body=kit.createBody({...host,root:projection},{figure,words,...HOLO_BEHAVIOUR});
   const originalSet=body.set, originalStep=body.step;
   body.set=state=>{if('system' in state)environment.sample(state.system);originalSet(state);};
-  body.step=dt=>{originalSet(environment.step(dt));originalStep(dt);};
+  body.step=dt=>{
+    if(originalLayout().pressing)figure.signal.cancelRelocation();
+    originalSet(environment.step(dt));originalStep(dt);
+    const jump=figure.signal.takeRelocation();
+    if(jump)body.relocate(jump.edge,jump.position);
+    projection.style.opacity=figure.signal.hidden?'0':'1';
+  };
+  const originalLayout=body.layout,originalDispose=body.dispose;
+  body.layout=()=>{
+    const layout=originalLayout();
+    return {...layout,moving:layout.moving||figure.signal.active,...(figure.signal.hidden?{hit:[]}: {})};
+  };
+  body.dispose=()=>{originalDispose();projection.remove();};
   const originalDo=body.do;
   body.do=word=>{
     const accepted=originalDo(word);

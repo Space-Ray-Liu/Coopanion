@@ -927,6 +927,17 @@ export function createPet(els, opts) {
     setMode('air');
     onEvent('touch', { kind: 'drop', x: Math.round(pet.x) });
   }
+  /** Instantly places an unheld body at a screen edge; side placement rests on the wall before descending. */
+  function relocate(edge,position) {
+    if(press||busy()||(edge!=='bottom'&&!opts.climb))return false;
+    const k=clamp(position,0,1),side=edge!=='bottom';
+    setMode(side?'climb':'idle',side?{wall:edge,wallPhase:'rest',wallRest:T+opts.climb.rest}:{});
+    pet.x=pet.target=edge==='left'?minX():edge==='right'?maxX():lerp(minX(),maxX(),k);
+    pet.fy=side?lerp(Math.min(floorY,wallTop()),floorY,k):floorY;
+    pet.gy=freeGround?pet.fy:floorY;pet.targetY=pet.gy;
+    pet.vx=pet.vy=pet.gvy=pet.tilt=pet.tiltV=pet.lean=0;pet.nextAt=T+3;
+    return true;
+  }
   /**
    * Keeps a held body under the pointer when the stage moved to another display mid-drag: every
    * point on screen now sits (dx, dy) stage pixels from where it was.
@@ -965,7 +976,7 @@ export function createPet(els, opts) {
   custom?.setSkin?.(skin);
   return {
     pet, step, render, resize, act, setExpr, doWord, walkTo, stopWalk, toStage, hitPet, busy, layout,
-    pointerDown, pointerMove, pointerUp, pointerLeave, dropAt, shiftDrag,
+    pointerDown, pointerMove, pointerUp, pointerLeave, dropAt, shiftDrag, relocate,
     get pressing() { return !!press; },
     /** Pressed, carried, airborne, walking, running, dancing, turning round, or in a short gesture (nod, wave, bow…): motion that frames far apart show as jumps. */
     get moving() {
@@ -1035,6 +1046,8 @@ const SVGNS = 'http://www.w3.org/2000/svg';
  * The body takes these calls from the page: step(dt), layout(), do(word), walk(x, run, id), stopWalk(id), pointer(type, p),
  * drop(p), shift(dx, dy), place(x, facing, y), move(args, id), set({ roam, hold, dialogOpen, listening, thinking, thoughtShown, status, skin, theme, idleSeconds, effort }),
  * cue(kind), talk(), setScheme(id, o), dispose(); `words` lists every word its do() knows.
+ * A pack can call `relocate(edge, position)` locally to place an unheld body instantly on the left, right or bottom
+ * screen edge. `position` is a fraction along its permitted span; side placement requires `opts.climb` and rests there.
  */
 export function createBody(host, opts) {
   const doc = host.root.ownerDocument;
@@ -1090,6 +1103,8 @@ export function createBody(host, opts) {
       if (ctl.freeGround && typeof y === 'number' && Number.isFinite(y)) ctl.pet.gy = ctl.pet.targetY = ctl.pet.fy = clamp(y, minY, floorY);
       if (facing === 1 || facing === -1) ctl.pet.facing = ctl.pet.faceVis = facing;
     },
+    /** Pack-local instant edge placement; `position` is a fraction along the permitted edge. */
+    relocate(edge,position) {const moved=ctl.relocate(edge,position);if(moved)ctl.render();return moved;},
     set(s) {
       if (s.roam) ctl.setRoam(s.roam);
       if (typeof s.hold === 'number') ctl.holdRoam(s.hold);

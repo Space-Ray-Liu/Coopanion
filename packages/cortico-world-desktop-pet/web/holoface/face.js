@@ -1,9 +1,9 @@
 /** Continuous geometry for a mint hologram. Retargeting preserves velocity, including mid-expression. */
 import { holoParticles } from './particles.js';
-import { MODULES, createModuleParticles } from './modules.js';
+import { MODULES, createModuleMotion } from './modules.js';
 import { createExhaust } from './exhaust.js';
 import { createWallLink, WALL_PORTS } from './wall-link.js';
-import { createProjectionSignal } from './signal.js';
+import { HoloSignal, createProjectionSignal } from './signal.js';
 const N = 32;
 const ellipse = (x, y, rx, ry, angle = 0) => Array.from({ length: N }, (_, i) => {
   const a = i * Math.PI * 2 / N, u = Math.cos(a) * rx, v = Math.sin(a) * ry;
@@ -87,9 +87,10 @@ const points = (values, offset, close=0, cy=126) => Array.from({length:N},(_,i)=
 const head = 'M78 62H178Q184 62 188 66L204 82Q208 86 208 92V188Q208 194 204 198L188 214Q184 218 178 218H78Q72 218 68 214L52 198Q48 194 48 188V92Q48 86 52 82L68 66Q72 62 78 62Z';
 const heart = 'M0 8C-27-7-16-28 0-15C16-28 27-7 0 8Z';
 let sequence = 0;
-export function createHoloFigure() {
+export function createHoloFigure({random=Math.random}={}) {
   const motion = new FaceMotion();
-  let elements = null, exhaust = null, wallLink = null, moduleParticles = null, signal = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
+  const signal=new HoloSignal({random});
+  let elements = null, exhaust = null, wallLink = null, moduleMotion = null, drawSignal = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
   const id = `hf${++sequence}`;
   const make = (group) => {
     group.innerHTML = `<defs>
@@ -132,11 +133,11 @@ export function createHoloFigure() {
     </g><g data-part="wall-link"/></g>`;
     const get = name => group.querySelector(`[data-part="${name}"]`);
     elements = Object.fromEntries(['float','face','left','right','mouth','mouthclip','teeth','cool','shine','tears','tearflow','peace','peaceleft','peaceright','salute','thumb','think','laughmodules','hearts','heartleft','heartright','star','anger','beam','exhaust','heat','wall-link'].map(name=>[name,get(name)]));
-    signal=createProjectionSignal(get('projection'),get('signal-gaps'),get('signal-noise'));
+    drawSignal=createProjectionSignal(get('projection'),get('signal-gaps'),get('signal-noise'),signal);
     exhaust=createExhaust(elements.exhaust,`${id}-pixelglow`);
     wallLink=createWallLink(elements['wall-link'],`${id}-pixelglow`);
     elements.peaceleft.innerHTML=MODULES.victory; elements.peaceright.innerHTML=MODULES.victory;
-    moduleParticles=createModuleParticles(['peace','salute','thumb','think','laughmodules'].map(name=>elements[name]));
+    moduleMotion=createModuleMotion(['peace','salute','thumb','think','laughmodules'].map(name=>elements[name]));
     for(const name of ['peace','salute','thumb','think','laughmodules']){
       elements[name].setAttribute('filter',`url(#${id}-pixelglow)`);
     }
@@ -145,13 +146,13 @@ export function createHoloFigure() {
   const setWeight=(name,w)=>elements[name].setAttribute('opacity',Math.max(0,Math.min(1,w)).toFixed(3));
   const aliases={sad:'cry',worried:'cry',smile:'neutral',excited:'victory',shy:'love',smug:'smug',sleepy:'neutral',sleep:'neutral',dizzy:'surprised',dragged:'surprised',listening:'surprised',determined:'angry',run:'neutral',pout:'angry',scared:'surprised',flustered:'surprised',content:'neutral',wink:'salute',waking:'surprised',squeeze:'neutral',laugh:'happy'};
   return {
-    motion,
+    motion,signal,
     request(expression, seconds=4) { if (!POSES[expression]) return false; requested=expression; requestedUntil=t+seconds; return true; },
     draw(group, face, frame) {
       if (!elements || !elements.float.isConnected) make(group);
       const dt = Math.max(0,Math.min(.08,frame.t-previousT)); previousT=frame.t; t=frame.t;
       const impact=frame.impact??0;
-      signal(t,impact);
+      drawSignal(t,impact,frame.mode);
       let expression = requested && t<requestedUntil ? requested : (POSES[frame.face] ? frame.face : aliases[frame.face] ?? 'neutral');
       if (!requested && frame.face==='neutral' && frame.status) expression='thinking';
       if (requested && t>=requestedUntil) requested=null;
@@ -173,7 +174,8 @@ export function createHoloFigure() {
       const steady=impact>0?0:1, bob=(Math.sin(t*2.2)*1.5+Math.sin(t*13)*w[8]*1.4)*steady;
       elements.float.setAttribute('transform',`translate(${fixed(Math.sin(t*21)*w[7]*.7*steady)} ${fixed(bob)}) rotate(${fixed(Math.sin(t*1.2)*w[5]*3*steady)} 128 155)`);
       elements.beam.setAttribute('y',String(64+(t*23)%151));
-      const mounted=wallLink(t,dt,frame.wall,frame.wallAnchor);
+      const wallAnchor=frame.wallAnchor?[frame.wallAnchor[0]-signal.visual.offset,frame.wallAnchor[1]]:null;
+      const mounted=wallLink(t,dt,frame.wall,wallAnchor);
       ['cool','peace','salute','hearts','thumb','think','laughmodules','anger','tears'].forEach((name,i)=>{
         const isModule=['peace','salute','thumb','think','laughmodules'].includes(name);
         setWeight(name,w[i]*(isModule?1-mounted:1));
@@ -190,7 +192,7 @@ export function createHoloFigure() {
       elements.thumb.setAttribute('transform',`translate(205 ${fixed(149+20*(1-w[4])+Math.sin(t*4)*2)})`);
       elements.think.setAttribute('transform',`translate(${fixed(128+Math.sin(t*1.5)*1.5)} ${fixed(193+14*(1-w[5]))})`);
       elements.laughmodules.setAttribute('transform',`translate(0 ${fixed(14*(1-w[6])+Math.sin(t*3)*4)})`);
-      moduleParticles(t);
+      moduleMotion(t);
       elements.heartleft.setAttribute('transform',`translate(46 ${fixed(213-Math.sin(t*2)*4)}) scale(${fixed(.9+Math.sin(t*4)*.07)}) rotate(-17)`);
       elements.heartright.setAttribute('transform',`translate(204 ${fixed(88+Math.sin(t*2.1)*4)}) scale(${fixed(1+Math.sin(t*4+.5)*.08)}) rotate(15)`);
       setWeight('star',w[2]*(.75+Math.sin(t*4)*.25));
