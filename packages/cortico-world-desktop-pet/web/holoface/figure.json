@@ -2,7 +2,7 @@
   "manifest": 2,
   "api": 2,
   "id": "holoface",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "name": {
     "zh": "薄荷全息脸",
     "zh-Hant": "薄荷全息臉",
@@ -17,8 +17,8 @@
     "ru": "Мятная голограмма"
   },
   "about": {
-    "zh": "薄荷绿色全息电子脸，近方形屏幕、扫描线、像素高光和周围带电流粒子的悬浮八面体。爬墙时一条电流从身体侧面中间连接到屏幕边缘。表情连续形变，眼睛、嘴和八面体都不会瞬间换图。可沿屏幕左右边缘攀爬，最高停在屏幕三分之二高度；长时间无操作时休眠；明显摔落后保持朝向稳定，投影以每次不同的随机节奏闪断，整体轻微横向抖动并出现扫描线断层，暂时缩小并伴随机械泪痕；每次明显摔落有 20% 概率短暂消失，再出现在屏幕左侧、右侧或底部。高风扇读数时微红、显示机械绿焰和使劲表情；风扇不可读时用持续 CPU/GPU 高负载近似触发。任务真实失败时用大哭，确认成功或用户夸奖时用致敬；根据上下文判断，不把每个工具结束都当成任务成功。",
-    "en": "A mint holographic face with a nearly square screen, scanlines, pixel highlights and floating octahedra with triangular facets surrounded by electrical particles. Climbing uses a single electrical current from the middle of the body's side to the screen edge. Expressions morph continuously. It climbs the screen sides up to two thirds of the height, sleeps during prolonged inactivity, and stays upright with fresh randomized projection dropouts, slight horizontal jitter and scanline interruptions after a hard user-thrown landing, alongside temporary shrinking and circuit-like tears. Each hard landing has a 20% chance of a brief disappearance followed by reappearing at the left, right or bottom screen edge. High fan readings add a red tint, green digital exhaust and a straining face; sustained CPU/GPU load is the fallback when fan data is unavailable. For actual task failure use cry; for confirmed success or explicit praise use salute. Judge the context; an individual tool finishing is not by itself task success."
+    "zh": "薄荷绿色全息电子脸，近方形屏幕、扫描线、像素高光和带薄侧边、高光和电流粒子的悬浮八边形手部。爬墙时一条电流从身体侧面中间连接到屏幕边缘。表情连续形变，眼睛、嘴和手部都不会瞬间换图。可沿屏幕左右边缘攀爬，最高停在屏幕三分之二高度；长时间无操作时休眠；明显摔落后保持朝向稳定，投影以每次不同的随机节奏闪断，整体轻微横向抖动并出现扫描线断层，暂时缩小并伴随机械泪痕；每轮累计空闲时间达到随机选定的 30–90 秒后，会短暂消失，再出现在屏幕左侧、右侧或底部；拿起、睡眠、移动、对话、聆听或工作期间暂停。高风扇读数时微红、显示机械绿焰和使劲表情；风扇不可读时用持续 CPU/GPU 高负载近似触发。任务真实失败时用大哭，确认成功或用户夸奖时用致敬；根据上下文判断，不把每个工具结束都当成任务成功。",
+    "en": "A mint holographic face with a nearly square screen, scanlines, pixel highlights and floating octagonal hands with thin side edges, highlights and surrounding electrical particles. Climbing uses a single electrical current from the middle of the body's side to the screen edge. Expressions morph continuously. It climbs the screen sides up to two thirds of the height, sleeps during prolonged inactivity, and stays upright with fresh randomized projection dropouts, slight horizontal jitter and scanline interruptions after a hard user-thrown landing, alongside temporary shrinking and circuit-like tears. After a fresh random 30–90 seconds of idle time, it briefly disappears and reappears at the left, right or bottom screen edge; holding, sleep, movement, conversation, listening and work pause the timer. High fan readings add a red tint, green digital exhaust and a straining face; sustained CPU/GPU load is the fallback when fan data is unavailable. For actual task failure use cry; for confirmed success or explicit praise use salute. Judge the context; an individual tool finishing is not by itself task success."
   },
   "author": "Coopanion custom",
   "license": "AGPL-3.0-or-later",
@@ -156,8 +156,8 @@
         ]
       },
       "about": {
-        "zh": "两个八面体在两侧轻轻浮动，周围有电流粒子。",
-        "en": "Two octahedra float beside the face with electrical particles; use for excitement and celebration."
+        "zh": "两侧的八边形手部轻轻浮动，周围有电流粒子。",
+        "en": "Two octagonal hands float beside the face with electrical particles; use for excitement and celebration."
       },
       "seconds": 4.5
     },
@@ -200,8 +200,8 @@
         ]
       },
       "about": {
-        "zh": "八面体升到额角，周围电流与星光闪烁。确认任务成功完成或用户夸奖时优先用这个表情。",
-        "en": "An octahedron rises beside the upper corner with electrical particles and a sparkle. Prefer this after a confirmed successful task or explicit praise from the person."
+        "zh": "八边形手部升到额角，周围电流与星光闪烁。确认任务成功完成或用户夸奖时优先用这个表情。",
+        "en": "An octagonal hand rises beside the upper corner with electrical particles and a sparkle. Prefer this after a confirmed successful task or explicit praise from the person."
       },
       "seconds": 4.5
     },
@@ -288,8 +288,8 @@
         ]
       },
       "about": {
-        "zh": "眯眼微笑，侧边的八面体轻轻浮动，周围有电流粒子。",
-        "en": "Smiling eyes accompany a floating octahedron with electrical particles; use for approval."
+        "zh": "眯眼微笑，侧边的八边形手部轻轻浮动，周围有电流粒子。",
+        "en": "Smiling eyes accompany a floating octagonal hand with electrical particles; use for approval."
       },
       "seconds": 4.5
     },
@@ -332,8 +332,8 @@
         ]
       },
       "about": {
-        "zh": "八面体悬浮在脸下方，周围电流粒子流动。",
-        "en": "An octahedron floats below the face with moving electrical particles; use for consideration."
+        "zh": "八边形手部悬浮在脸下方，周围电流粒子流动。",
+        "en": "An octagonal hand floats below the face with moving electrical particles; use for consideration."
       },
       "seconds": 4.5
     },
@@ -376,8 +376,8 @@
         ]
       },
       "about": {
-        "zh": "眼睛眯起、嘴巴张开，两侧的八面体上下浮动，周围有电流粒子。",
-        "en": "Eyes squeeze into a laugh and the mouth opens while octahedra float up and down with electrical particles."
+        "zh": "眼睛眯起、嘴巴张开，两侧的八边形手部上下浮动，周围有电流粒子。",
+        "en": "Eyes squeeze into a laugh and the mouth opens while octagonal hands float up and down with electrical particles."
       },
       "seconds": 4.5
     },

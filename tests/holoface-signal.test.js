@@ -22,14 +22,64 @@ describe('hologram signal faults',()=>{
    expect(samples.at(-1)).toMatchObject({opacity:1,offset:0,amount:0});
   }
  });
- it.each([[HOLO_SIGNAL.relocationChance-.001,true],[HOLO_SIGNAL.relocationChance,false]])('uses the configured relocation probability at roll %s',(roll,expected)=>{
-  const next=seeded(7);let first=true;
-  const signal=new HoloSignal({random:()=>{if(first){first=false;return roll;}return next();}});
-  let hidden=false;const jumps=[];
-  for(let i=0;i<240;i++){
-   const t=i/120;signal.advance(t,1-t/9,'dizzy');hidden||=signal.hidden;
-   const jump=signal.takeRelocation();if(jump){expect(signal.hidden).toBe(true);jumps.push(jump);}
+});
+
+describe('autonomous hologram relocation',()=>{
+ it('repeats after random idle intervals without an impact, moving once per disappearance',()=>{
+  const signal=new HoloSignal({random:seeded(7)}),jumps=[];
+  for(let i=0;i<210*60;i++){
+   const t=i/60,visual=signal.advance(t,0,'idle');
+   expect(visual).toMatchObject({offset:0,amount:0});
+   expect(visual.opacity).toBe(signal.hidden?0:1);
+   const jump=signal.takeRelocation();
+   if(jump){expect(signal.hidden).toBe(true);jumps.push({t,...jump});}
+   signal.advance(t,0,'idle');expect(signal.takeRelocation()).toBeNull();
   }
-  expect(hidden).toBe(expected);expect(jumps).toHaveLength(expected?1:0);
+  expect(jumps.length).toBeGreaterThanOrEqual(2);
+  const intervals=jumps.map((j,i)=>j.t-(jumps[i-1]?.t??0));
+  for(const seconds of intervals){
+   expect(seconds).toBeGreaterThanOrEqual(HOLO_SIGNAL.relocationInterval[0]);
+   expect(seconds).toBeLessThan(HOLO_SIGNAL.relocationInterval[1]+1);
+  }
+  expect(new Set(intervals.map(Math.floor)).size).toBeGreaterThan(1);
+ });
+ it.each(['drag','air','sleep','walk','climb','paused'])('does not count time spent in %s towards the next relocation',mode=>{
+  const signal=new HoloSignal({random:()=>0}),delay=HOLO_SIGNAL.relocationInterval[0];
+  signal.advance(0,0,'idle');signal.advance(delay-1,0,'idle');
+  signal.paused=mode==='paused';
+  for(let i=0;i<120;i++){
+   signal.advance(delay+i,0,mode==='paused'?'idle':mode);
+   expect(signal.hidden).toBe(false);expect(signal.takeRelocation()).toBeNull();
+  }
+  signal.paused=false;signal.advance(delay+120,0,'idle');
+  expect(signal.relocation).toBeNull();
+  signal.advance(delay+121,0,'idle');
+  expect(signal.relocation).not.toBeNull();
+ });
+ it('cancels a scheduled jump on interaction and starts a fresh interval afterwards',()=>{
+  const signal=new HoloSignal({random:()=>0}),delay=HOLO_SIGNAL.relocationInterval[0];
+  signal.advance(0,0,'idle');signal.advance(delay,0,'idle');
+  expect(signal.relocation).not.toBeNull();
+  signal.paused=true;signal.advance(delay+.04,0,'idle');
+  expect(signal.relocation).toBeNull();expect(signal.hidden).toBe(false);
+  signal.paused=false;signal.advance(delay+1,0,'idle');
+  signal.advance(delay*2,0,'idle');expect(signal.relocation).toBeNull();
+  signal.advance(delay*2+1,0,'idle');expect(signal.relocation).not.toBeNull();
+ });
+ it('preserves the invisible interval after relocation changes the mode to climbing',()=>{
+  const signal=new HoloSignal({random:()=>0}),delay=HOLO_SIGNAL.relocationInterval[0];
+  signal.advance(0,0,'idle');signal.advance(delay,0,'idle');
+  signal.advance(delay+.18,0,'idle');expect(signal.takeRelocation()?.edge).toBe('left');
+  signal.advance(delay+.18,0,'climb');expect(signal.hidden).toBe(true);
+  signal.advance(delay+.3,0,'climb');expect(signal.hidden).toBe(false);
+  expect(signal.takeRelocation()).toBeNull();
+ });
+ it('keeps impact interference independent of the idle timer',()=>{
+  const signal=new HoloSignal({random:()=>0}),delay=HOLO_SIGNAL.relocationInterval[0];
+  signal.advance(0,0,'idle');signal.advance(delay-1,0,'idle');
+  record(signal,delay);
+  expect(signal.takeRelocation()).toBeNull();
+  signal.advance(delay+5,0,'idle');expect(signal.relocation).toBeNull();
+  signal.advance(delay+6,0,'idle');expect(signal.relocation).not.toBeNull();
  });
 });

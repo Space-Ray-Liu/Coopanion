@@ -19,14 +19,6 @@ function chooseEdge(edge){
  const first=[0,{left:.05,right:.5,bottom:.95}[edge]];let seed=181;
  return ()=>first.length?first.shift():((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 }
-function hardThrow({body,events}){
- const hit=body.layout().hit[0];
- body.pointer('down',{x:hit.x,y:hit.y,t:0});body.pointer('move',{x:450,y:120,t:100});advance(body,.5);
- body.pointer('move',{x:450,y:400,t:200});body.step(1/60);body.pointer('up',{x:450,y:400,t:210});
- for(let i=0;i<120;i++){body.step(1/60);if(events.some(e=>e.event==='touch'&&e.kind==='crash'))return;}
- throw new Error('The throw did not land hard');
-}
-
 describe('hologram activity and effort',()=>{
  it('sleeps through prolonged inactivity and wakes when system input resumes',()=>{
   const {body}=rig();body.set({system:{idleSeconds:180,cpuLoad:.1,fanFraction:null}});advance(body,4);
@@ -81,10 +73,23 @@ describe('hologram activity and effort',()=>{
  });
 });
 
-describe('hologram impact relocation',()=>{
+describe('autonomous hologram relocation',()=>{
+ it.each(['dialogOpen','thinking','listening','status'])('pauses the idle timer while %s is active and resumes it afterwards',key=>{
+  const {body,root}=rig(undefined,chooseEdge('left'));
+  advance(body,HOLO_SIGNAL.relocationInterval[0]-.1);
+  body.set({[key]:key==='status'?'read':true});
+  for(let i=0;i<60;i++){
+   body.step(1/30);expect(root.querySelector('[data-holo-projection]').style.opacity).toBe('1');
+   expect(body.layout().x).toBeCloseTo(450);
+  }
+  body.set({[key]:key==='status'?null:false});
+  let hidden=false;
+  for(let i=0;i<60;i++){body.step(1/60);hidden||=root.querySelector('[data-holo-projection]').style.opacity==='0';}
+  expect(hidden).toBe(true);expect(body.layout().x).toBeLessThan(150);body.dispose();
+ });
  it.each(['left','right','bottom'])('disappears before moving to the %s edge, then restores its hit area',edge=>{
   const r=rig(undefined,chooseEdge(edge)),{body,root,bounds}=r;
-  const full=body.layout().hit[0].r;hardThrow(r);
+  const full=body.layout().hit[0].r;advance(body,HOLO_SIGNAL.relocationInterval[0]-.1);
   let hidden=0,moves=0,previousX=body.layout().x;
   for(let i=0;i<180;i++){
    body.step(1/60);const l=body.layout(),invisible=root.querySelector('[data-holo-projection]').style.opacity==='0';
@@ -93,7 +98,8 @@ describe('hologram impact relocation',()=>{
    previousX=l.x;
   }
   expect(hidden).toBeGreaterThan(3);expect(moves).toBe(1);
-  const l=body.layout();expect(l.hit).toHaveLength(1);expect(l.hit[0].r/full).toBeCloseTo(HOLO_BEHAVIOUR.impact.scale,2);
+  const l=body.layout();expect(l.hit).toHaveLength(1);expect(l.hit[0].r/full).toBeCloseTo(1,2);
+  expect(r.events.some(e=>e.event==='touch'&&e.kind==='crash')).toBe(false);
   expect(root.querySelector('[data-holo-projection]').style.opacity).toBe('1');
   if(edge==='bottom'){
    expect(l.mode).toBe('idle');expect(l.box.y+l.box.h).toBeGreaterThan(bounds.floorY-5);
@@ -106,7 +112,7 @@ describe('hologram impact relocation',()=>{
   expect(body.layout().mode).toBe('drag');body.dispose();
  });
  it('cancels a pending disappearance when picked up again',()=>{
-  const r=rig(undefined,chooseEdge('left')),{body,root,bounds}=r;hardThrow(r);
+  const r=rig(undefined,chooseEdge('left')),{body,root,bounds}=r;advance(body,HOLO_SIGNAL.relocationInterval[0]+.05);
   const hit=body.layout().hit[0];body.pointer('down',{x:hit.x,y:hit.y,t:500});
   body.pointer('move',{x:hit.x+16,y:hit.y-35,t:600});
   for(let i=0;i<90;i++){
@@ -117,7 +123,7 @@ describe('hologram impact relocation',()=>{
   body.dispose();expect(root.querySelector('[data-holo-projection]')).toBeNull();
  });
  it('uses the current screen bounds when a resize happens during disappearance',()=>{
-  const bounds={W:900,H:600,floorY:570,S:.6},r=rig(bounds,chooseEdge('right')),{body,root}=r;hardThrow(r);
+  const bounds={W:900,H:600,floorY:570,S:.6},r=rig(bounds,chooseEdge('right')),{body,root}=r;advance(body,HOLO_SIGNAL.relocationInterval[0]-.1);
   for(let i=0;i<60&&root.querySelector('[data-holo-projection]').style.opacity!=='0';i++)body.step(1/60);
   expect(root.querySelector('[data-holo-projection]').style.opacity).toBe('0');
   bounds.W=620;bounds.H=420;bounds.floorY=400;body.resize();advance(body,2);

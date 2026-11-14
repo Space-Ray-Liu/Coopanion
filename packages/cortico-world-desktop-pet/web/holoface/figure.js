@@ -2,7 +2,7 @@
 import { createHoloFigure } from './face.js';
 import { HOLO_BEHAVIOUR, HoloEnvironment } from './environment.js';
 export function createHoloBody(base, {kit,host,random=Math.random}) {
-  const figure=createHoloFigure({random});
+  const figure=createHoloFigure({random,autoRelocate:true});
   const words=Object.fromEntries(['victory','salute','thumbsup'].map(id=>[id,{expression:{like:'happy',seconds:4.5}}]));
   for(const id of ['climb-left','climb-right']) words[id]={motion:{seconds:60}};
   const environment=new HoloEnvironment();
@@ -10,10 +10,15 @@ export function createHoloBody(base, {kit,host,random=Math.random}) {
   projection.dataset.holoProjection='';projection.style.cssText='position:absolute;inset:0';
   host.root.appendChild(projection);
   const body=kit.createBody({...host,root:projection},{figure,words,...HOLO_BEHAVIOUR});
+  const interaction={dialogOpen:false,listening:false,thinking:false,status:null};
   const originalSet=body.set, originalStep=body.step;
-  body.set=state=>{if('system' in state)environment.sample(state.system);originalSet(state);};
+  body.set=state=>{
+    if('system' in state)environment.sample(state.system);
+    for(const key of Object.keys(interaction))if(key in state)interaction[key]=state[key];
+    originalSet(state);
+  };
   body.step=dt=>{
-    if(originalLayout().pressing)figure.signal.cancelRelocation();
+    figure.signal.paused=originalLayout().pressing||Object.values(interaction).some(Boolean);
     originalSet(environment.step(dt));originalStep(dt);
     const jump=figure.signal.takeRelocation();
     if(jump)body.relocate(jump.edge,jump.position);

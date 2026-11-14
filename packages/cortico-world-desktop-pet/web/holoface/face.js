@@ -87,9 +87,9 @@ const points = (values, offset, close=0, cy=126) => Array.from({length:N},(_,i)=
 const head = 'M78 62H178Q184 62 188 66L204 82Q208 86 208 92V188Q208 194 204 198L188 214Q184 218 178 218H78Q72 218 68 214L52 198Q48 194 48 188V92Q48 86 52 82L68 66Q72 62 78 62Z';
 const heart = 'M0 8C-27-7-16-28 0-15C16-28 27-7 0 8Z';
 let sequence = 0;
-export function createHoloFigure({random=Math.random}={}) {
+export function createHoloFigure({random=Math.random,autoRelocate=false}={}) {
   const motion = new FaceMotion();
-  const signal=new HoloSignal({random});
+  const signal=new HoloSignal({random,autoRelocate});
   let elements = null, exhaust = null, wallLink = null, moduleMotion = null, drawSignal = null, previousT = 0, requested = null, requestedUntil = 0, t = 0;
   const id = `hf${++sequence}`;
   const make = (group) => {
